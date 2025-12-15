@@ -182,17 +182,49 @@
             };
 
             // --- Data Management Handlers ---
-            const handleExport = () => {
+            const handleExportBackup = () => {
                 const data = { periods, inventory, sales, version: "cloud-v1" };
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `lottery_backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `lottery_full_backup_${new Date().toISOString().split('T')[0]}.json`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 showToast("ส่งออกข้อมูล Backup สำเร็จ");
+            };
+
+            const handleExportCSV = () => {
+                // สร้างข้อมูลสำหรับ CSV: วันที่, ต้นทุน, ยอดขาย, กำไร
+                const headers = ["วันที่ (Date)", "ต้นทุน (Cost)", "ยอดขาย (Sales)", "กำไร (Profit)"];
+                const rows = periods.map(p => {
+                    const stats = getStats(p.id);
+                    return [
+                        p.date,
+                        stats.cost,
+                        stats.revenue,
+                        stats.profit
+                    ];
+                }).sort((a, b) => new Date(b[0]) - new Date(a[0])); // เรียงจากใหม่ไปเก่า
+
+                const csvContent = [
+                    headers.join(","),
+                    ...rows.map(row => row.join(","))
+                ].join("\n");
+
+                // ใช้ BOM เพื่อให้ Excel อ่านภาษาไทยออก
+                const BOM = "\uFEFF"; 
+                const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `lottery_report_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast("ส่งออกไฟล์ Excel/CSV เรียบร้อย");
             };
 
             const handleImportJSON = (event) => {
@@ -206,7 +238,7 @@
                             if(confirm("คำเตือน: การนำเข้า Backup จะอัปโหลดขึ้น Google Sheet และแทนที่ข้อมูลเดิมทั้งหมด\nยืนยันที่จะทำต่อหรือไม่?")) {
                                 saveData(data);
                                 if (data.periods.length > 0) setCurrentPeriodId(data.periods[0].id);
-                                showToast("กู้คืนข้อมูลและเริ่มซิงค์สำเร็จ");
+                                showToast("กู้คืนข้อมูลสำเร็จ");
                             }
                         } else {
                             showToast("รูปแบบไฟล์ Backup ไม่ถูกต้อง", "error");
@@ -487,30 +519,41 @@
                     <h2 className="text-2xl font-heading font-bold text-gray-800 mb-2">จัดการข้อมูล (Data Management)</h2>
                     <p className="text-gray-500 mb-8">สำรองข้อมูล นำเข้า หรือกู้คืนข้อมูล</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Section 1: Backup System (Full Restore) */}
                         <div className="modern-card p-8 hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><Icon name="download" size={24} /></div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">ส่งออกข้อมูล (Backup)</h3>
-                            <p className="text-sm text-gray-500 mb-6">ดาวน์โหลดข้อมูลทั้งหมดเก็บไว้เป็นไฟล์ .json เพื่อความปลอดภัย</p>
-                            <button onClick={handleExport} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"><Icon name="download" size={18} /> ดาวน์โหลด Backup</button>
+                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4"><Icon name="download" size={24} /></div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">Backup ระบบ (JSON)</h3>
+                            <p className="text-sm text-gray-500 mb-6">ดาวน์โหลดข้อมูลทุกอย่าง (ละเอียด) เก็บไว้เพื่อกู้คืนในภายหลัง</p>
+                            <button onClick={handleExportBackup} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"><Icon name="save" size={18} /> ดาวน์โหลด Backup</button>
                         </div>
                         <div className="modern-card p-8 hover:shadow-lg transition-shadow">
                             <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4"><Icon name="upload" size={24} /></div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">นำเข้า Backup (.json)</h3>
-                            <p className="text-sm text-gray-500 mb-6">กู้คืนข้อมูลจากไฟล์ Backup ที่เคยดาวน์โหลดไว้</p>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">Restore ระบบ (JSON)</h3>
+                            <p className="text-sm text-gray-500 mb-6">กู้คืนข้อมูลจากไฟล์ Backup ที่เคยดาวน์โหลดไว้ (ข้อมูลปัจจุบันจะถูกทับ)</p>
                             <div className="relative">
                                 <input type="file" onChange={handleImportJSON} accept=".json" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="refresh-cw" size={18} /> เลือกไฟล์ Backup</button>
+                                <button className="w-full py-3 bg-white border-2 border-blue-100 text-blue-600 hover:bg-blue-50 rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="rotate-ccw" size={18} /> เลือกไฟล์กู้คืน</button>
                             </div>
                         </div>
-                        <div className="modern-card p-8 hover:shadow-lg transition-shadow md:col-span-2">
-                            <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4"><Icon name="file-spreadsheet" size={24} /></div>
+
+                        {/* Section 2: Excel / CSV (Export & Import) */}
+                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
+                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><Icon name="file-spreadsheet" size={24} /></div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">ส่งออก Excel (.csv)</h3>
+                            <p className="text-sm text-gray-500 mb-6">ส่งออกรายงานสรุปยอดขายและต้นทุนรายงวด เพื่อนำไปเปิดใน Excel</p>
+                            <button onClick={handleExportCSV} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"><Icon name="download" size={18} /> ดาวน์โหลด CSV</button>
+                        </div>
+                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
+                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><Icon name="file-plus" size={24} /></div>
                             <h3 className="text-lg font-bold text-gray-800 mb-2">นำเข้าจาก Excel/CSV</h3>
-                            <p className="text-sm text-gray-500 mb-6">นำเข้าประวัติเก่าจากไฟล์ .csv (ต้องมีคอลัมน์: วันที่, ต้นทุน, ยอดขาย)</p>
+                            <p className="text-sm text-gray-500 mb-6">นำเข้าข้อมูลจากไฟล์ .csv (ต้องมีคอลัมน์: วันที่, ต้นทุน, ยอดขาย)</p>
                             <div className="relative">
                                 <input type="file" onChange={handleImportCSV} accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                <button className="w-full py-3 bg-white border-2 border-orange-100 text-orange-600 hover:bg-orange-50 rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="file-plus" size={18} /> เลือกไฟล์ CSV</button>
+                                <button className="w-full py-3 bg-white border-2 border-emerald-100 text-emerald-600 hover:bg-emerald-50 rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="file-plus" size={18} /> เลือกไฟล์ CSV</button>
                             </div>
                         </div>
+
                     </div>
                 </div>
             );
