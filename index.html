@@ -2,250 +2,199 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lottery Pro - Cloud System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lottery Pro - Modern Cloud</title>
     
-    <!-- React & ReactDOM -->
+    <!-- Libraries -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Custom Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Sarabun', 'sans-serif'], heading: ['Prompt', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(59, 130, 246, 0.5)',
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #FAFAFA; color: #333; }
-        h1, h2, h3, .font-heading { font-family: 'Prompt', sans-serif; }
+        body { background-color: #F3F4F6; -webkit-tap-highlight-color: transparent; }
         
-        /* Modern Inputs */
-        .modern-input { @apply w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100; }
-        
-        /* Modern Card */
-        .modern-card { @apply bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]; }
-        
-        /* Table */
-        .clean-table th { @apply text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 py-4 bg-gray-50/50 border-b border-gray-100; }
-        .clean-table td { @apply px-6 py-4 text-sm text-gray-600 border-b border-gray-50; }
-        .clean-table tr:last-child td { @apply border-b-0; }
-        .clean-table tr:hover td { @apply bg-indigo-50/30; }
-
-        /* Animation */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-
-        /* Hide Scrollbar */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Modern Scrollbar */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+        
+        /* Glassmorphism */
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+        
+        /* Inputs */
+        .input-lg { @apply w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-base outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100 transition-all shadow-sm; }
+        
+        /* Animations */
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .anim-enter { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Mobile Touch Optimizations */
+        button { touch-action: manipulation; }
     </style>
 </head>
-<body class="h-screen overflow-hidden bg-gray-50">
-    <div id="root" class="h-full"></div>
+<body class="h-screen flex flex-col text-gray-800 overflow-hidden">
+    <div id="root" class="h-full flex flex-col"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- Configuration ---
+        // --- Config ---
         const API_URL = "https://script.google.com/macros/s/AKfycbx8vrpVJKtCt7vou3AgyqmCBlgkOgo1JqvBZhSrf2KgCTXpXUA_QM6_diAGlPcStZtO/exec";
         const ITEM_TYPES = ['ลอตเตอรี่', '3N', 'อื่นๆ'];
 
-        // --- Components ---
-        const Toast = ({ message, type, onClose }) => {
-            useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
-            const colors = type === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
-            return (
-                <div className={`fixed top-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-full shadow-xl z-50 animate-fade-in ${colors} text-white`}>
-                    <span className="font-medium text-sm">{message}</span>
-                </div>
-            );
-        };
-
-        const Icon = ({ name, size = 20, className }) => {
+        // --- UI Components ---
+        const Icon = ({ name, size = 24, className }) => {
             const ref = useRef(null);
             useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
             return <i data-lucide={name} width={size} height={size} className={className}></i>;
         };
 
-        const StatCard = ({ title, value, icon, accentColor }) => (
-            <div className="modern-card p-6 flex items-start justify-between hover:-translate-y-1 transition-transform duration-300">
-                <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{title}</p>
-                    <h3 className="text-3xl font-heading font-bold text-gray-800">{value}</h3>
+        const Toast = ({ message, type, onClose }) => {
+            useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+            const bg = type === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
+            return (
+                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-6 py-3 rounded-full shadow-xl text-white ${bg} anim-enter`}>
+                    <Icon name={type === 'success' ? 'check-circle' : 'alert-circle'} size={20} />
+                    <span className="font-medium text-sm">{message}</span>
                 </div>
-                <div className={`p-3 rounded-2xl ${accentColor} bg-opacity-10`}>
-                    <Icon name={icon} className={accentColor.replace('bg-', 'text-')} size={24} />
+            );
+        };
+
+        const StatCard = ({ title, value, subtext, icon, color }) => (
+            <div className="bg-white rounded-2xl p-5 shadow-soft border border-gray-100 flex items-center justify-between relative overflow-hidden group">
+                <div className={`absolute right-0 top-0 w-24 h-24 bg-${color}-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110`}></div>
+                <div className="relative z-10">
+                    <p className="text-sm text-gray-500 font-medium mb-1">{title}</p>
+                    <h3 className={`text-3xl font-heading font-bold text-${color}-600`}>{value}</h3>
+                    {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
+                </div>
+                <div className={`relative z-10 w-12 h-12 rounded-xl bg-${color}-100 flex items-center justify-center text-${color}-600`}>
+                    <Icon name={icon} size={24} />
                 </div>
             </div>
         );
 
         // --- Main App ---
         const App = () => {
-            const [activeTab, setActiveTab] = useState('dashboard');
+            const [tab, setTab] = useState('dashboard');
             const [toast, setToast] = useState(null);
-            const [loading, setLoading] = useState(false);
-            const [isSyncing, setIsSyncing] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [syncing, setSyncing] = useState(false);
             
             // Data
             const [periods, setPeriods] = useState([]);
             const [inventory, setInventory] = useState([]);
             const [sales, setSales] = useState([]);
-            const [currentPeriodId, setCurrentPeriodId] = useState('');
+            const [currPId, setCurrPId] = useState('');
 
-            // Initial Load
-            useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-                loadData();
-            }, []);
+            // Init
+            useEffect(() => { loadData(); }, []);
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [tab]);
 
-            // Helper Functions
-            const showToast = (msg, type = 'success') => setToast({ message: msg, type });
+            const showToast = (msg, type='success') => setToast({message: msg, type});
 
             const loadData = async () => {
-                setLoading(true);
                 try {
                     const res = await fetch(`${API_URL}?action=read`);
-                    const data = await res.json();
-                    if (data.periods) {
-                        setPeriods(data.periods);
-                        setInventory(data.inventory);
-                        setSales(data.sales);
-                        // Set current period to latest if not set
-                        if (data.periods.length > 0 && !currentPeriodId) {
-                            // Sort periods by date descending to get latest
-                            const sorted = [...data.periods].sort((a,b) => new Date(b.date) - new Date(a.date));
-                            setCurrentPeriodId(sorted[0].id);
+                    const d = await res.json();
+                    if (d.periods) {
+                        setPeriods(d.periods);
+                        setInventory(d.inventory);
+                        setSales(d.sales);
+                        if (d.periods.length > 0 && !currPId) {
+                            // Sort by date desc
+                            const sorted = [...d.periods].sort((a,b) => new Date(b.date) - new Date(a.date));
+                            setCurrPId(sorted[0].id);
                         }
                     }
-                } catch (e) {
-                    showToast("โหลดข้อมูลไม่สำเร็จ: " + e.message, "error");
-                } finally {
-                    setLoading(false);
-                }
+                } catch(e) { showToast("โหลดข้อมูลไม่สำเร็จ", "error"); }
+                finally { setLoading(false); }
             };
 
             const saveData = async (newData) => {
-                setIsSyncing(true);
+                setSyncing(true);
                 // Optimistic Update
                 if (newData.periods) setPeriods(newData.periods);
                 if (newData.inventory) setInventory(newData.inventory);
                 if (newData.sales) setSales(newData.sales);
 
-                const payload = {
-                    periods: newData.periods || periods,
-                    inventory: newData.inventory || inventory,
-                    sales: newData.sales || sales
-                };
-
                 try {
                     await fetch(API_URL + "?action=sync", {
                         method: 'POST',
-                        body: JSON.stringify(payload),
+                        body: JSON.stringify({
+                            periods: newData.periods || periods,
+                            inventory: newData.inventory || inventory,
+                            sales: newData.sales || sales
+                        }),
                         headers: { "Content-Type": "text/plain" }
                     });
-                } catch (e) {
-                    showToast("บันทึกข้อมูลไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)", "error");
-                } finally {
-                    setIsSyncing(false);
-                }
+                } catch(e) { showToast("บันทึกไม่สำเร็จ", "error"); }
+                finally { setSyncing(false); }
             };
 
-            // Calculations
             const getStats = (pId) => {
-                const cost = inventory.filter(i => i.periodId === pId).reduce((sum, i) => sum + (i.totalCost || 0), 0);
-                const revenue = sales.filter(s => s.periodId === pId).reduce((sum, s) => sum + (s.totalPrice || 0), 0);
-                return { cost, revenue, profit: revenue - cost };
+                const c = inventory.filter(i => i.periodId === pId).reduce((s, i) => s + (i.totalCost || 0), 0);
+                const r = sales.filter(s => s.periodId === pId).reduce((s, x) => s + (x.totalPrice || 0), 0);
+                return { cost: c, revenue: r, profit: r - c };
             };
-            const currentStats = useMemo(() => getStats(currentPeriodId), [currentPeriodId, inventory, sales]);
+            const currStats = useMemo(() => getStats(currPId), [currPId, inventory, sales]);
 
             // Handlers
-            const handleAddPeriod = () => {
-                const date = prompt("วันที่งวดใหม่ (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-                if (date) {
-                    const newId = `p_${Date.now()}`;
-                    const newPeriods = [{ id: newId, date }, ...periods];
-                    setCurrentPeriodId(newId);
-                    saveData({ periods: newPeriods });
-                    showToast("เพิ่มงวดใหม่เรียบร้อย");
+            const addPeriod = () => {
+                const d = prompt("วันที่งวดใหม่ (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+                if (d) {
+                    const id = `p_${Date.now()}`;
+                    const newP = [{id, date: d}, ...periods];
+                    setCurrPId(id);
+                    saveData({periods: newP});
+                    showToast("เพิ่มงวดใหม่แล้ว");
                 }
             };
 
-            // --- Data Management Handlers ---
-            const handleExportBackup = () => {
-                const data = { periods, inventory, sales, version: "cloud-v1" };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `lottery_full_backup_${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                showToast("ส่งออกข้อมูล Backup สำเร็จ");
-            };
-
-            const handleExportCSV = () => {
-                // สร้างข้อมูลสำหรับ CSV: วันที่, ต้นทุน, ยอดขาย, กำไร
-                const headers = ["วันที่ (Date)", "ต้นทุน (Cost)", "ยอดขาย (Sales)", "กำไร (Profit)"];
-                const rows = periods.map(p => {
-                    const stats = getStats(p.id);
-                    return [
-                        p.date,
-                        stats.cost,
-                        stats.revenue,
-                        stats.profit
-                    ];
-                }).sort((a, b) => new Date(b[0]) - new Date(a[0])); // เรียงจากใหม่ไปเก่า
-
-                const csvContent = [
-                    headers.join(","),
-                    ...rows.map(row => row.join(","))
-                ].join("\n");
-
-                // ใช้ BOM เพื่อให้ Excel อ่านภาษาไทยออก
-                const BOM = "\uFEFF"; 
-                const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
-                
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `lottery_report_${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                showToast("ส่งออกไฟล์ Excel/CSV เรียบร้อย");
-            };
-
+            // Data Handlers
             const handleImportJSON = (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
-                        const data = JSON.parse(e.target.result);
-                        if (data.periods && data.inventory && data.sales) {
-                            if(confirm("คำเตือน: การนำเข้า Backup จะอัปโหลดขึ้น Google Sheet และแทนที่ข้อมูลเดิมทั้งหมด\nยืนยันที่จะทำต่อหรือไม่?")) {
-                                saveData(data);
-                                if (data.periods.length > 0) setCurrentPeriodId(data.periods[0].id);
-                                showToast("กู้คืนข้อมูลสำเร็จ");
+                        const json = JSON.parse(e.target.result);
+                        if (json.periods && json.inventory && json.sales) {
+                            if (confirm('ข้อมูลปัจจุบันจะถูกแทนที่ ยืนยันการกู้คืน?')) {
+                                saveData(json);
+                                setPeriods(json.periods);
+                                setInventory(json.inventory);
+                                setSales(json.sales);
+                                showToast('กู้คืนข้อมูลสำเร็จ');
                             }
                         } else {
-                            showToast("รูปแบบไฟล์ Backup ไม่ถูกต้อง", "error");
+                            showToast('ไฟล์ไม่ถูกต้อง', 'error');
                         }
-                    } catch (err) {
-                        showToast("ไม่สามารถอ่านไฟล์ได้", "error");
-                    }
+                    } catch (ex) { showToast('อ่านไฟล์ไม่ได้', 'error'); }
                 };
                 reader.readAsText(file);
                 event.target.value = '';
@@ -257,250 +206,230 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const text = e.target.result;
-                    const lines = text.split('\n');
+                    const lines = text.split('\n').filter(l => l.trim());
+                    let newPeriods = [...periods], newInv = [...inventory], newSales = [...sales], count = 0;
                     
-                    let newPeriods = [...periods];
-                    let newInventory = [...inventory];
-                    let newSales = [...sales];
-                    let count = 0;
-
-                    lines.forEach((line, index) => {
-                        if (index === 0) return; // Skip Header
+                    lines.forEach((line, idx) => {
+                        if (idx === 0 && (line.includes('Date') || line.includes('วันที่'))) return;
                         const cols = line.split(',');
-                        if (cols.length < 3) return;
-                        
-                        const date = cols[0]?.trim();
-                        const cost = parseFloat(cols[1]) || 0;
-                        const sale = parseFloat(cols[2]) || 0;
-                        
-                        if (date && (cost > 0 || sale > 0)) {
-                            const pId = `p_csv_${Date.now()}_${index}`;
-                            newPeriods.push({ id: pId, date: date });
-                            
-                            if (cost > 0) {
-                                newInventory.push({
-                                    id: `inv_csv_${Date.now()}_${index}`,
-                                    periodId: pId,
-                                    source: 'CSV Import',
-                                    type: 'อื่นๆ', 
-                                    qty: 1,
-                                    unitCost: cost,
-                                    totalCost: cost
-                                });
+                        if (cols.length >= 3) {
+                            const date = cols[0].trim(), cost = parseFloat(cols[1]), rev = parseFloat(cols[2]);
+                            if (date && !isNaN(cost) && !isNaN(rev)) {
+                                const pId = `p_imp_${Date.now()}_${idx}`;
+                                newPeriods.push({id: pId, date});
+                                if (cost > 0) newInv.push({ id: `inv_${pId}`, periodId: pId, source: 'Import', type: 'อื่นๆ', qty: 1, unitCost: cost, totalCost: cost });
+                                if (rev > 0) newSales.push({ id: `sale_${pId}`, periodId: pId, date: date, customer: 'Import', type: 'อื่นๆ', qty: 1, price: rev, totalPrice: rev });
+                                count++;
                             }
-                            
-                            if (sale > 0) {
-                                newSales.push({
-                                    id: `sale_csv_${Date.now()}_${index}`,
-                                    periodId: pId,
-                                    date: date,
-                                    customer: 'CSV Import',
-                                    type: 'อื่นๆ',
-                                    qty: 1,
-                                    price: sale,
-                                    totalPrice: sale,
-                                    payment: 'เงินสด'
-                                });
-                            }
-                            count++;
                         }
                     });
-                    
-                    if (count > 0) {
-                        if(confirm(`พบข้อมูล ${count} รายการ ต้องการนำเข้าและอัปโหลดขึ้น Google Sheet หรือไม่?`)) {
-                            saveData({ periods: newPeriods, inventory: newInventory, sales: newSales });
-                            setCurrentPeriodId(newPeriods[newPeriods.length - 1].id);
-                            showToast(`นำเข้า CSV สำเร็จ ${count} รายการ`);
-                        }
-                    } else {
-                        showToast("ไม่พบข้อมูลที่นำเข้าได้ใน CSV", "error");
-                    }
+
+                    if (count > 0 && confirm(`พบข้อมูล ${count} รายการ นำเข้าหรือไม่?`)) {
+                        saveData({ periods: newPeriods, inventory: newInv, sales: newSales });
+                        setPeriods(newPeriods); setInventory(newInv); setSales(newSales);
+                        showToast(`นำเข้า ${count} รายการสำเร็จ`);
+                    } else if (count === 0) showToast('ไม่พบข้อมูลที่อ่านได้', 'error');
                 };
                 reader.readAsText(file);
                 event.target.value = '';
             };
 
-            // --- Views ---
-            const InventoryView = () => {
-                const items = inventory.filter(i => i.periodId === currentPeriodId);
-                const update = (newItems) => saveData({ inventory: newItems });
+            // --- Sub Views ---
+            const ItemCard = ({ data, type, onSave, onDelete }) => {
+                const [isEdit, setIsEdit] = useState(false);
+                const [form, setForm] = useState({...data});
+
+                const handleChange = (k, v) => {
+                    setForm(prev => {
+                        const next = {...prev, [k]: v};
+                        if (type === 'inv') next.totalCost = (next.qty||0) * (next.unitCost||0);
+                        if (type === 'sale') next.totalPrice = (next.qty||0) * (next.price||0);
+                        return next;
+                    });
+                };
+
+                if (isEdit) return (
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-brand-100 mb-4 anim-enter">
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="col-span-2">
+                                <label className="text-xs text-gray-400">รายละเอียด</label>
+                                <input className="input-lg" value={type==='inv'?form.source:form.customer} onChange={e=>handleChange(type==='inv'?'source':'customer', e.target.value)} placeholder={type==='inv'?'แหล่งที่มา':'ชื่อลูกค้า'} />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400">ประเภท</label>
+                                <select className="input-lg" value={form.type} onChange={e=>handleChange('type', e.target.value)}>{ITEM_TYPES.map(t=><option key={t}>{t}</option>)}</select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400">วันที่</label>
+                                <input type="date" className="input-lg text-sm px-2" value={type==='inv'?'':form.date} disabled={type==='inv'} onChange={e=>handleChange('date', e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400">จำนวน</label>
+                                <input type="number" className="input-lg text-right" value={form.qty} onChange={e=>handleChange('qty', parseFloat(e.target.value))} />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400">{type==='inv'?'ทุน/หน่วย':'ราคาขาย'}</label>
+                                <input type="number" className="input-lg text-right" value={type==='inv'?form.unitCost:form.price} onChange={e=>handleChange(type==='inv'?'unitCost':'price', parseFloat(e.target.value))} />
+                            </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                            <button onClick={()=>{onSave(form); setIsEdit(false);}} className="flex-1 bg-brand-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-brand-200 active:scale-95 transition">บันทึก</button>
+                            <button onClick={()=>{setForm({...data}); setIsEdit(false);}} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold active:scale-95 transition">ยกเลิก</button>
+                        </div>
+                    </div>
+                );
 
                 return (
-                    <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-hidden">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h2 className="text-2xl font-heading font-bold text-gray-800">จัดการต้นทุน</h2>
-                                <p className="text-gray-500 text-sm">งวดวันที่ {periods.find(p=>p.id===currentPeriodId)?.date}</p>
+                    <div className="bg-white rounded-2xl p-4 shadow-soft mb-3 flex items-center justify-between group active:scale-[0.99] transition-transform">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${type==='inv'?'bg-indigo-50 text-indigo-600':'bg-emerald-50 text-emerald-600'}`}>{data.type}</span>
+                                <span className="text-xs text-gray-400">{type==='inv'?'': new Date(data.date).toLocaleDateString('th-TH', {day:'numeric', month:'short'})}</span>
                             </div>
-                            <button onClick={() => update([...inventory, { id: Date.now(), periodId: currentPeriodId, source: '', type: 'ลอตเตอรี่', qty: 100, unitCost: 80, totalCost: 8000 }])} 
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition-all">
-                                <Icon name="plus" size={18} /> เพิ่มรายการ
-                            </button>
+                            <h4 className="font-heading font-bold text-gray-800 text-lg">{type==='inv' ? (data.source||'ไม่ระบุที่มา') : (data.customer||'ลูกค้าทั่วไป')}</h4>
+                            <p className="text-sm text-gray-500">
+                                {data.qty.toLocaleString()} ใบ × ฿{type==='inv'?data.unitCost:data.price}
+                            </p>
                         </div>
-                        <div className="modern-card flex-1 flex flex-col overflow-hidden">
-                            <div className="overflow-auto flex-1 custom-scroll">
-                                <table className="w-full clean-table">
-                                    <thead className="sticky top-0 bg-white z-10 shadow-sm">
-                                        <tr>
-                                            <th>แหล่งที่มา</th>
-                                            <th>ประเภท</th>
-                                            <th className="text-right">จำนวน</th>
-                                            <th className="text-right">ทุน/หน่วย</th>
-                                            <th className="text-right">รวมเงิน</th>
-                                            <th className="w-16"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {items.length === 0 ? <tr><td colSpan="6" className="text-center py-20 text-gray-400">ยังไม่มีข้อมูลต้นทุน</td></tr> : items.map(r => (
-                                            <tr key={r.id}>
-                                                <td className="p-2"><input className="modern-input" value={r.source} onChange={e => update(inventory.map(x => x.id === r.id ? {...x, source: e.target.value} : x))} placeholder="ระบุที่มา..." /></td>
-                                                <td className="p-2 w-40">
-                                                    <select className="modern-input cursor-pointer" value={r.type} onChange={e => update(inventory.map(x => x.id === r.id ? {...x, type: e.target.value} : x))}>
-                                                        {ITEM_TYPES.map(t => <option key={t}>{t}</option>)}
-                                                    </select>
-                                                </td>
-                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.qty} onChange={e => {
-                                                    const val = parseFloat(e.target.value) || 0;
-                                                    update(inventory.map(x => x.id === r.id ? {...x, qty: val, totalCost: val * x.unitCost} : x));
-                                                }} /></td>
-                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.unitCost} onChange={e => {
-                                                    const val = parseFloat(e.target.value) || 0;
-                                                    update(inventory.map(x => x.id === r.id ? {...x, unitCost: val, totalCost: val * x.qty} : x));
-                                                }} /></td>
-                                                <td className="text-right font-bold text-gray-700">฿{r.totalCost.toLocaleString()}</td>
-                                                <td className="text-center"><button onClick={() => update(inventory.filter(x => x.id !== r.id))} className="text-gray-300 hover:text-rose-500 transition-colors"><Icon name="trash-2" size={18} /></button></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center px-8">
-                                <span className="text-sm font-semibold text-gray-500">รวมต้นทุนทั้งหมด</span>
-                                <span className="text-xl font-bold text-gray-800">฿{currentStats.cost.toLocaleString()}</span>
+                        <div className="text-right pl-4">
+                            <p className={`font-bold text-xl font-heading ${type==='inv'?'text-rose-600':'text-emerald-600'}`}>
+                                ฿{(type==='inv'?data.totalCost:data.totalPrice).toLocaleString()}
+                            </p>
+                            <div className="flex gap-3 justify-end mt-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={()=>setIsEdit(true)} className="text-brand-500 bg-brand-50 p-2 rounded-lg"><Icon name="pencil" size={18}/></button>
+                                <button onClick={()=>onDelete(data.id)} className="text-rose-500 bg-rose-50 p-2 rounded-lg"><Icon name="trash-2" size={18}/></button>
                             </div>
                         </div>
                     </div>
                 );
             };
 
-            const SalesView = () => {
-                const items = sales.filter(s => s.periodId === currentPeriodId);
-                const update = (newItems) => saveData({ sales: newItems });
+            const ListView = ({ mode }) => {
+                const items = mode==='inv' ? inventory.filter(i=>i.periodId===currPId) : sales.filter(s=>s.periodId===currPId);
+                const update = (newItem) => {
+                    const list = mode==='inv'?inventory:sales;
+                    const updated = list.map(x => x.id === newItem.id ? newItem : x);
+                    saveData(mode==='inv'?{inventory:updated}:{sales:updated});
+                };
+                const add = () => {
+                    const newItem = mode==='inv' 
+                        ? { id: Date.now(), periodId: currPId, source: '', type: 'ลอตเตอรี่', qty: 100, unitCost: 80, totalCost: 8000 }
+                        : { id: Date.now(), periodId: currPId, date: new Date().toISOString().split('T')[0], customer: '', type: 'ลอตเตอรี่', qty: 1, price: 100, totalPrice: 100 };
+                    saveData(mode==='inv'?{inventory:[newItem, ...inventory]}:{sales:[newItem, ...sales]});
+                };
+                const del = (id) => {
+                    if(confirm('ลบรายการนี้?')) {
+                        const list = mode==='inv'?inventory:sales;
+                        saveData(mode==='inv'?{inventory:list.filter(x=>x.id!==id)}:{sales:list.filter(x=>x.id!==id)});
+                    }
+                };
 
                 return (
-                    <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-hidden">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h2 className="text-2xl font-heading font-bold text-gray-800">บันทึกยอดขาย</h2>
-                                <p className="text-gray-500 text-sm">งวดวันที่ {periods.find(p=>p.id===currentPeriodId)?.date}</p>
+                    <div className="flex-1 flex flex-col h-full bg-gray-50/50">
+                        {/* Header Area */}
+                        <div className="bg-white px-6 py-4 shadow-sm z-10 sticky top-0">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h2 className="text-2xl font-heading font-bold text-gray-800">{mode==='inv'?'สต็อกต้นทุน':'ยอดขายรายวัน'}</h2>
+                                    <p className="text-sm text-gray-500">งวด {periods.find(p=>p.id===currPId)?.date}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">ยอดรวม</p>
+                                    <p className={`text-2xl font-bold font-heading ${mode==='inv'?'text-rose-600':'text-emerald-600'}`}>
+                                        ฿{(mode==='inv'?currStats.cost:currStats.revenue).toLocaleString()}
+                                    </p>
+                                </div>
                             </div>
-                            <button onClick={() => update([...sales, { id: Date.now(), periodId: currentPeriodId, date: new Date().toISOString().split('T')[0], customer: '', type: 'ลอตเตอรี่', qty: 1, price: 100, totalPrice: 100 }])} 
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all">
-                                <Icon name="plus" size={18} /> บันทึกขาย
+                            <button onClick={add} className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 active:scale-95 transition ${mode==='inv'?'bg-indigo-600 shadow-indigo-200':'bg-emerald-600 shadow-emerald-200'}`}>
+                                <Icon name="plus-circle" size={20} /> เพิ่มรายการใหม่
                             </button>
                         </div>
-                        <div className="modern-card flex-1 flex flex-col overflow-hidden">
-                            <div className="overflow-auto flex-1 custom-scroll">
-                                <table className="w-full clean-table">
-                                    <thead className="sticky top-0 bg-white z-10 shadow-sm">
-                                        <tr>
-                                            <th className="w-40">วันที่</th>
-                                            <th>ลูกค้า</th>
-                                            <th>ประเภท</th>
-                                            <th className="text-right">ราคา</th>
-                                            <th className="text-right">จำนวน</th>
-                                            <th className="text-right">รวมเงิน</th>
-                                            <th className="w-16"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {items.length === 0 ? <tr><td colSpan="7" className="text-center py-20 text-gray-400">ยังไม่มียอดขาย</td></tr> : items.map(r => (
-                                            <tr key={r.id}>
-                                                <td className="p-2"><input type="date" className="modern-input text-gray-500" value={r.date} onChange={e => update(sales.map(x => x.id === r.id ? {...x, date: e.target.value} : x))} /></td>
-                                                <td className="p-2"><input className="modern-input" value={r.customer} onChange={e => update(sales.map(x => x.id === r.id ? {...x, customer: e.target.value} : x))} placeholder="ลูกค้า..." /></td>
-                                                <td className="p-2 w-40">
-                                                    <select className="modern-input cursor-pointer" value={r.type} onChange={e => update(sales.map(x => x.id === r.id ? {...x, type: e.target.value} : x))}>
-                                                        {ITEM_TYPES.map(t => <option key={t}>{t}</option>)}
-                                                    </select>
-                                                </td>
-                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.price} onChange={e => {
-                                                    const val = parseFloat(e.target.value) || 0;
-                                                    update(sales.map(x => x.id === r.id ? {...x, price: val, totalPrice: val * x.qty} : x));
-                                                }} /></td>
-                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.qty} onChange={e => {
-                                                    const val = parseFloat(e.target.value) || 0;
-                                                    update(sales.map(x => x.id === r.id ? {...x, qty: val, totalPrice: val * x.price} : x));
-                                                }} /></td>
-                                                <td className="text-right font-bold text-emerald-600">฿{r.totalPrice.toLocaleString()}</td>
-                                                <td className="text-center"><button onClick={() => update(sales.filter(x => x.id !== r.id))} className="text-gray-300 hover:text-rose-500 transition-colors"><Icon name="trash-2" size={18} /></button></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center px-8">
-                                <span className="text-sm font-semibold text-gray-500">ยอดขายรวมทั้งหมด</span>
-                                <span className="text-xl font-bold text-emerald-600">฿{currentStats.revenue.toLocaleString()}</span>
-                            </div>
+
+                        {/* List Area */}
+                        <div className="flex-1 overflow-y-auto p-4 custom-scroll pb-24">
+                            {items.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><Icon name={mode==='inv'?'package':'shopping-cart'} size={32} /></div>
+                                    <p>ยังไม่มีรายการ</p>
+                                </div>
+                            ) : (
+                                items.map(item => <ItemCard key={item.id} data={item} type={mode} onSave={update} onDelete={del} />)
+                            )}
                         </div>
                     </div>
                 );
             };
 
             const ReportsView = () => {
-                const reportData = periods.map(p => {
-                    const stats = getStats(p.id);
-                    return { ...p, ...stats, margin: stats.cost > 0 ? (stats.profit / stats.cost) * 100 : 0 };
-                }).sort((a, b) => new Date(b.date) - new Date(a.date));
+                const reportData = useMemo(() => {
+                    return periods.map(p => {
+                        const s = getStats(p.id);
+                        return { ...p, ...s, margin: s.cost > 0 ? (s.profit / s.cost) * 100 : 0 };
+                    }).sort((a,b) => new Date(b.date) - new Date(a.date));
+                }, [periods, inventory, sales]);
 
-                const totalProfit = reportData.reduce((sum, r) => sum + r.profit, 0);
-                const bestPeriod = reportData.reduce((best, current) => (current.profit > best.profit ? current : best), reportData[0] || { profit: 0 });
+                const allTime = useMemo(() => reportData.reduce((acc, curr) => ({
+                    cost: acc.cost + curr.cost,
+                    revenue: acc.revenue + curr.revenue,
+                    profit: acc.profit + curr.profit
+                }), { cost: 0, revenue: 0, profit: 0 }), [reportData]);
 
                 return (
-                    <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-hidden">
-                        <h2 className="text-2xl font-heading font-bold text-gray-800 mb-6">รายงานสรุป (Reports)</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className="modern-card p-6 border-l-4 border-indigo-500">
-                                <p className="text-gray-500 text-sm mb-1">กำไรรวมทุกงวด</p>
-                                <h3 className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-                                    {totalProfit >= 0 ? '+' : ''}{totalProfit.toLocaleString()}
+                    <div className="flex-1 overflow-y-auto p-6 custom-scroll pb-24">
+                        <h2 className="text-2xl font-heading font-bold text-gray-800 mb-6">รายงานสรุปผลประกอบการ</h2>
+                        
+                        {/* Overview Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                                <div className="absolute right-0 top-0 w-32 h-32 bg-white opacity-10 rounded-bl-full -mr-6 -mt-6"></div>
+                                <p className="opacity-80 mb-1 text-sm font-medium">กำไรสะสม (Accumulated Profit)</p>
+                                <h3 className="text-3xl font-bold font-heading">
+                                    {allTime.profit > 0 ? '+' : ''}฿{allTime.profit.toLocaleString()}
                                 </h3>
                             </div>
-                            <div className="modern-card p-6 border-l-4 border-emerald-500">
-                                <p className="text-gray-500 text-sm mb-1">งวดที่กำไรสูงสุด</p>
-                                <h3 className="text-xl font-bold text-gray-800 mb-1">
-                                    {bestPeriod.date ? new Date(bestPeriod.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: '2-digit'}) : '-'}
-                                </h3>
-                                <p className="text-xs text-emerald-600">กำไร: {bestPeriod.profit?.toLocaleString()}</p>
+                            <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-500 mb-1 text-sm font-medium">ยอดขายรวม</p>
+                                    <h3 className="text-2xl font-bold text-emerald-600">฿{allTime.revenue.toLocaleString()}</h3>
+                                </div>
+                                <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600"><Icon name="trending-up" /></div>
                             </div>
-                            <div className="modern-card p-6 border-l-4 border-gray-400">
-                                <p className="text-gray-500 text-sm mb-1">จำนวนงวดทั้งหมด</p>
-                                <h3 className="text-3xl font-bold text-gray-800">{periods.length} งวด</h3>
+                            <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-500 mb-1 text-sm font-medium">ต้นทุนรวม</p>
+                                    <h3 className="text-2xl font-bold text-rose-600">฿{allTime.cost.toLocaleString()}</h3>
+                                </div>
+                                <div className="p-3 bg-rose-50 rounded-xl text-rose-600"><Icon name="package" /></div>
                             </div>
                         </div>
-                        <div className="modern-card flex-1 flex flex-col overflow-hidden">
-                            <div className="overflow-auto flex-1 custom-scroll">
-                                <table className="w-full clean-table">
-                                    <thead className="sticky top-0 bg-white z-10 shadow-sm">
+
+                        {/* Table */}
+                        <h3 className="text-lg font-bold text-gray-700 mb-4">รายละเอียดรายงวด</h3>
+                        <div className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left min-w-[600px]">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
                                         <tr>
-                                            <th>งวดวันที่</th>
-                                            <th className="text-right">ต้นทุน</th>
-                                            <th className="text-right">ยอดขาย</th>
-                                            <th className="text-right">กำไร/ขาดทุน</th>
-                                            <th className="text-right">Margin</th>
+                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase">งวดวันที่</th>
+                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase text-right">ต้นทุน</th>
+                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase text-right">ยอดขาย</th>
+                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase text-right">กำไร</th>
+                                            <th className="p-4 text-xs font-bold text-gray-400 uppercase text-right">Margin</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-gray-50">
                                         {reportData.map(r => (
-                                            <tr key={r.id}>
-                                                <td className="font-medium">{new Date(r.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}</td>
-                                                <td className="text-right text-gray-500">{r.cost.toLocaleString()}</td>
-                                                <td className="text-right text-gray-500">{r.revenue.toLocaleString()}</td>
-                                                <td className={`text-right font-bold ${r.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                            <tr key={r.id} className="hover:bg-gray-50/50 transition">
+                                                <td className="p-4 font-medium text-gray-700">
+                                                    {new Date(r.date).toLocaleDateString('th-TH', {day:'numeric', month:'short', year:'2-digit'})}
+                                                </td>
+                                                <td className="p-4 text-right text-gray-500">{r.cost.toLocaleString()}</td>
+                                                <td className="p-4 text-right text-emerald-600">{r.revenue.toLocaleString()}</td>
+                                                <td className={`p-4 text-right font-bold ${r.profit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
                                                     {r.profit.toLocaleString()}
                                                 </td>
-                                                <td className="text-right text-xs">
-                                                    <span className={`px-2 py-1 rounded-full ${r.margin >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                <td className="p-4 text-right">
+                                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${r.margin >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                                                         {r.margin.toFixed(1)}%
                                                     </span>
                                                 </td>
@@ -514,156 +443,163 @@
                 );
             };
 
-            const DataManagementView = () => (
-                <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-y-auto custom-scroll">
-                    <h2 className="text-2xl font-heading font-bold text-gray-800 mb-2">จัดการข้อมูล (Data Management)</h2>
-                    <p className="text-gray-500 mb-8">สำรองข้อมูล นำเข้า หรือกู้คืนข้อมูล</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        
-                        {/* Section 1: Backup System (Full Restore) */}
-                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4"><Icon name="download" size={24} /></div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">Backup ระบบ (JSON)</h3>
-                            <p className="text-sm text-gray-500 mb-6">ดาวน์โหลดข้อมูลทุกอย่าง (ละเอียด) เก็บไว้เพื่อกู้คืนในภายหลัง</p>
-                            <button onClick={handleExportBackup} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"><Icon name="save" size={18} /> ดาวน์โหลด Backup</button>
-                        </div>
-                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4"><Icon name="upload" size={24} /></div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">Restore ระบบ (JSON)</h3>
-                            <p className="text-sm text-gray-500 mb-6">กู้คืนข้อมูลจากไฟล์ Backup ที่เคยดาวน์โหลดไว้ (ข้อมูลปัจจุบันจะถูกทับ)</p>
-                            <div className="relative">
-                                <input type="file" onChange={handleImportJSON} accept=".json" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                <button className="w-full py-3 bg-white border-2 border-blue-100 text-blue-600 hover:bg-blue-50 rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="rotate-ccw" size={18} /> เลือกไฟล์กู้คืน</button>
-                            </div>
-                        </div>
-
-                        {/* Section 2: Excel / CSV (Export & Import) */}
-                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><Icon name="file-spreadsheet" size={24} /></div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">ส่งออก Excel (.csv)</h3>
-                            <p className="text-sm text-gray-500 mb-6">ส่งออกรายงานสรุปยอดขายและต้นทุนรายงวด เพื่อนำไปเปิดใน Excel</p>
-                            <button onClick={handleExportCSV} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"><Icon name="download" size={18} /> ดาวน์โหลด CSV</button>
-                        </div>
-                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
-                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><Icon name="file-plus" size={24} /></div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-2">นำเข้าจาก Excel/CSV</h3>
-                            <p className="text-sm text-gray-500 mb-6">นำเข้าข้อมูลจากไฟล์ .csv (ต้องมีคอลัมน์: วันที่, ต้นทุน, ยอดขาย)</p>
-                            <div className="relative">
-                                <input type="file" onChange={handleImportCSV} accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                <button className="w-full py-3 bg-white border-2 border-emerald-100 text-emerald-600 hover:bg-emerald-50 rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="file-plus" size={18} /> เลือกไฟล์ CSV</button>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            );
-
-            const DashboardView = () => (
-                <div className="max-w-5xl mx-auto py-8 px-6 animate-fade-in">
-                    <div className="flex justify-between items-center mb-10">
+            const Dashboard = () => (
+                <div className="flex-1 overflow-y-auto p-5 custom-scroll pb-24">
+                    <div className="flex justify-between items-end mb-6">
                         <div>
-                            <h1 className="text-3xl font-heading font-bold text-gray-800">ภาพรวมธุรกิจ</h1>
-                            <p className="text-gray-500 mt-1">ข้อมูลล่าสุดจาก Google Sheet</p>
+                            <h1 className="text-3xl font-heading font-bold text-gray-800">ภาพรวม</h1>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="bg-white px-3 py-1 rounded-full text-xs font-bold text-brand-600 shadow-sm border border-brand-100 flex items-center gap-1">
+                                    <Icon name="calendar" size={12} /> {periods.find(p=>p.id===currPId)?.date || 'เลือกงวด'}
+                                </span>
+                                {syncing && <span className="text-xs text-gray-400 animate-pulse">กำลังซิงค์...</span>}
+                            </div>
                         </div>
-                        {isSyncing && <div className="flex items-center gap-2 text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full text-xs font-medium animate-pulse"><Icon name="refresh-cw" size={14} className="animate-spin" /> กำลังบันทึก...</div>}
+                        <button onClick={addPeriod} className="bg-white p-3 rounded-xl shadow-soft text-brand-600 border border-brand-50 hover:bg-brand-50 transition"><Icon name="plus" /></button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                        <StatCard title="ต้นทุน (Cost)" value={`฿${currentStats.cost.toLocaleString()}`} icon="package" accentColor="bg-rose-500" />
-                        <StatCard title="รายรับ (Revenue)" value={`฿${currentStats.revenue.toLocaleString()}`} icon="trending-up" accentColor="bg-emerald-500" />
-                        <StatCard title="กำไรสุทธิ (Profit)" value={`${currentStats.profit >= 0 ? '+' : ''}฿${currentStats.profit.toLocaleString()}`} icon="wallet" accentColor={currentStats.profit >= 0 ? "bg-indigo-600" : "bg-orange-500"} />
+                    <div className="grid gap-4 mb-8">
+                        <StatCard title="กำไรสุทธิ (Profit)" value={`฿${currStats.profit.toLocaleString()}`} subtext="ยอดขาย - ต้นทุน" icon="wallet" color={currStats.profit>=0?"brand":"rose"} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <StatCard title="ยอดขาย" value={`฿${currStats.revenue.toLocaleString()}`} icon="trending-up" color="emerald" />
+                            <StatCard title="ต้นทุน" value={`฿${currStats.cost.toLocaleString()}`} icon="package" color="rose" />
+                        </div>
                     </div>
 
-                    <h3 className="text-lg font-heading font-bold text-gray-700 mb-4">สถานะงวดบัญชี</h3>
-                    {periods.length === 0 ? (
-                        <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-400">ยังไม่มีงวดบัญชี กดปุ่ม "+" ด้านซ้ายเพื่อเริ่ม</div>
-                    ) : (
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                            <table className="w-full clean-table">
-                                <thead className="bg-gray-50"><tr><th>งวดวันที่</th><th className="text-right">สถานะ</th></tr></thead>
-                                <tbody>
-                                    {periods.map(p => (
-                                        <tr key={p.id} className={p.id === currentPeriodId ? "bg-indigo-50/40" : ""}>
-                                            <td className="font-medium text-gray-800 flex items-center gap-3">
-                                                {new Date(p.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}
-                                                {p.id === currentPeriodId && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 tracking-wider">LATEST</span>}
-                                            </td>
-                                            <td className="text-right">
-                                                <button onClick={() => {setCurrentPeriodId(p.id); setActiveTab('inventory');}} className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold hover:underline">จัดการข้อมูล</button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                    <h3 className="text-lg font-heading font-bold text-gray-700 mb-4 px-1">ประวัติย้อนหลัง</h3>
+                    <div className="bg-white rounded-2xl shadow-soft overflow-hidden">
+                        {periods.map(p => {
+                            const s = getStats(p.id);
+                            return (
+                                <div key={p.id} onClick={()=>setCurrPId(p.id)} className={`p-4 border-b border-gray-50 flex justify-between items-center cursor-pointer transition ${currPId===p.id?'bg-brand-50/50':''}`}>
+                                    <div>
+                                        <p className="font-bold text-gray-800 text-lg">{new Date(p.date).toLocaleDateString('th-TH', {day:'numeric', month:'short', year:'2-digit'})}</p>
+                                        <p className="text-xs text-gray-400 mt-0.5">ยอดขาย {s.revenue.toLocaleString()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`font-bold ${s.profit>=0?'text-emerald-600':'text-rose-600'}`}>{s.profit>0?'+':''}{s.profit.toLocaleString()}</p>
+                                        {currPId===p.id && <span className="text-[10px] font-bold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">เปิดอยู่</span>}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
             );
 
             // --- Layout ---
-            if (loading && periods.length === 0) {
-                return <div className="h-screen flex items-center justify-center bg-gray-50 text-gray-400 gap-3 flex-col"><div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div><p className="text-sm">กำลังเชื่อมต่อฐานข้อมูล...</p></div>;
-            }
+            if (loading) return (
+                <div className="h-screen flex items-center justify-center bg-gray-50 flex-col gap-4">
+                    <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-400 font-heading">กำลังโหลดข้อมูล...</p>
+                </div>
+            );
 
             return (
-                <div className="flex h-full bg-gray-50">
-                    {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+                <div className="h-full flex flex-col md:flex-row bg-gray-50 max-w-7xl mx-auto w-full shadow-2xl overflow-hidden md:rounded-3xl md:my-4 md:h-[95vh] md:border md:border-gray-200">
                     
-                    {/* Sidebar */}
-                    <aside className="w-72 bg-white border-r border-gray-100 flex flex-col z-20 shadow-xl shadow-gray-200/50">
-                        <div className="p-8 pb-6">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-                                    <Icon name="cloud" size={20} />
-                                </div>
-                                <div><h1 className="font-heading font-bold text-xl text-gray-900 leading-none">Lottery Pro</h1><span className="text-xs font-medium text-gray-400">Cloud System</span></div>
-                            </div>
-                            
-                            <div className="mb-6">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block px-1">งวดบัญชี</label>
-                                <div className="relative group">
-                                    <select value={currentPeriodId} onChange={(e) => setCurrentPeriodId(e.target.value)} className="w-full appearance-none bg-gray-50 hover:bg-gray-100 border-none rounded-xl px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer outline-none transition-colors">
-                                        {periods.map(p => <option key={p.id} value={p.id}>{new Date(p.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}</option>)}
-                                    </select>
-                                    <Icon name="chevron-down" size={16} className="absolute right-4 top-3.5 text-gray-400 pointer-events-none" />
-                                </div>
-                                <button onClick={handleAddPeriod} className="mt-3 w-full border border-dashed border-gray-300 rounded-xl py-2.5 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
-                                    <Icon name="plus-circle" size={16} /> เริ่มงวดใหม่
-                                </button>
-                            </div>
-                        </div>
-
-                        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
-                            <div className="px-4 pb-2 pt-4 text-xs font-bold text-gray-400 uppercase tracking-wider">เมนูหลัก</div>
+                    {/* Desktop Sidebar */}
+                    <div className="hidden md:flex w-64 bg-white border-r border-gray-100 flex-col p-6 z-20">
+                        <h1 className="text-2xl font-heading font-bold text-brand-600 mb-8 flex items-center gap-2"><Icon name="clover" className="text-brand-500" /> Lottery Pro</h1>
+                        <nav className="space-y-2 flex-1">
                             {[
-                                { id: 'dashboard', label: 'ภาพรวม', icon: 'layout-dashboard' },
-                                { id: 'inventory', label: 'จัดการต้นทุน', icon: 'package' },
-                                { id: 'sales', label: 'บันทึกยอดขาย', icon: 'shopping-bag' },
-                                { id: 'reports', label: 'รายงานสรุป', icon: 'file-text' },
-                                { id: 'data', label: 'จัดการข้อมูล', icon: 'database' }
-                            ].map(menu => (
-                                <button key={menu.id} onClick={() => setActiveTab(menu.id)} 
-                                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 group ${activeTab === menu.id ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
-                                    <Icon name={menu.icon} size={20} className={activeTab === menu.id ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'} />
-                                    {menu.label}
+                                {id: 'dashboard', l: 'ภาพรวม', i: 'layout-dashboard'},
+                                {id: 'inv', l: 'จัดการต้นทุน', i: 'package'},
+                                {id: 'sale', l: 'บันทึกยอดขาย', i: 'shopping-cart'},
+                                {id: 'report', l: 'รายงาน', i: 'pie-chart'},
+                                {id: 'data', l: 'ข้อมูล', i: 'database'}
+                            ].map(m => (
+                                <button key={m.id} onClick={()=>setTab(m.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${tab===m.id ? 'bg-brand-600 text-white shadow-lg shadow-brand-200' : 'text-gray-500 hover:bg-gray-50'}`}>
+                                    <Icon name={m.i} size={20} /> {m.l}
                                 </button>
                             ))}
                         </nav>
-                        <div className="p-6 text-center text-xs text-gray-400">
-                             {isSyncing ? <span className="flex items-center justify-center gap-2 text-indigo-500"><Icon name="refresh-cw" size={12} className="animate-spin" /> บันทึกอัตโนมัติ...</span> : "ซิงค์ข้อมูลล่าสุดแล้ว"}
-                        </div>
-                    </aside>
+                    </div>
 
-                    {/* Content */}
-                    <main className="flex-1 overflow-hidden relative flex flex-col bg-white/50">
-                        <div className="h-full overflow-y-auto overflow-x-hidden custom-scroll">
-                            {activeTab === 'dashboard' && <DashboardView />}
-                            {activeTab === 'inventory' && <InventoryView />}
-                            {activeTab === 'sales' && <SalesView />}
-                            {activeTab === 'reports' && <ReportsView />}
-                            {activeTab === 'data' && <DataManagementView />}
-                        </div>
+                    {/* Main Content */}
+                    <main className="flex-1 flex flex-col relative overflow-hidden bg-[#F8FAFC]">
+                        {tab === 'dashboard' && <Dashboard />}
+                        {tab === 'inv' && <ListView mode="inv" />}
+                        {tab === 'sale' && <ListView mode="sale" />}
+                        {tab === 'report' && <ReportsView />}
+                        {tab === 'data' && (
+                            <div className="flex-1 overflow-y-auto p-6 custom-scroll pb-24">
+                                <h2 className="text-2xl font-heading font-bold text-gray-800 mb-6">จัดการข้อมูล</h2>
+                                <div className="space-y-6 max-w-3xl mx-auto">
+                                    <section>
+                                        <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2"><Icon name="save" size={20} className="text-brand-600"/> สำรองและกู้คืน (Backup & Restore)</h3>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 hover:shadow-md transition">
+                                                <h4 className="font-bold text-gray-800 mb-1">Backup (JSON)</h4>
+                                                <p className="text-sm text-gray-400 mb-4">สำรองข้อมูลทั้งหมดเก็บไว้</p>
+                                                <button className="bg-brand-50 text-brand-600 hover:bg-brand-100 w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2" onClick={()=>{
+                                                    const b = new Blob([JSON.stringify({periods,inventory,sales})],{type:'application/json'});
+                                                    const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+                                                }}>
+                                                    <Icon name="download" size={18}/> ดาวน์โหลด Backup
+                                                </button>
+                                            </div>
+                                            <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 hover:shadow-md transition">
+                                                <h4 className="font-bold text-gray-800 mb-1">Restore (JSON)</h4>
+                                                <p className="text-sm text-gray-400 mb-4">กู้คืนข้อมูลจากไฟล์ Backup</p>
+                                                <label className="bg-white border-2 border-brand-100 text-brand-600 hover:border-brand-300 w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 cursor-pointer">
+                                                    <Icon name="upload" size={18}/> เลือกไฟล์กู้คืน
+                                                    <input type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section>
+                                        <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2"><Icon name="file-spreadsheet" size={20} className="text-emerald-600"/> Excel / CSV</h3>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 hover:shadow-md transition">
+                                                <h4 className="font-bold text-gray-800 mb-1">ส่งออก (Export CSV)</h4>
+                                                <p className="text-sm text-gray-400 mb-4">นำไปวิเคราะห์ต่อใน Excel</p>
+                                                <button className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2" onClick={()=>{
+                                                    const h = ["Date","Cost","Revenue","Profit"];
+                                                    const r = periods.map(p=>{const s=getStats(p.id); return [p.date,s.cost,s.revenue,s.profit]});
+                                                    const c = [h.join(','),...r.map(x=>x.join(','))].join('\n');
+                                                    const b = new Blob(["\uFEFF"+c],{type:'text/csv;charset=utf-8;'});
+                                                    const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`report_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+                                                }}>
+                                                    <Icon name="download" size={18}/> ดาวน์โหลด CSV
+                                                </button>
+                                            </div>
+                                            <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 hover:shadow-md transition">
+                                                <h4 className="font-bold text-gray-800 mb-1">นำเข้า (Import CSV)</h4>
+                                                <p className="text-sm text-gray-400 mb-4">รูปแบบ: วันที่, ต้นทุน, ยอดขาย</p>
+                                                <label className="bg-white border-2 border-emerald-100 text-emerald-600 hover:border-emerald-300 w-full py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 cursor-pointer">
+                                                    <Icon name="upload" size={18}/> เลือกไฟล์ CSV
+                                                    <input type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+                        )}
                     </main>
+
+                    {/* Mobile Bottom Nav */}
+                    <div className="md:hidden bg-white border-t border-gray-100 flex justify-around p-2 pb-safe z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                        {[
+                            {id: 'dashboard', l: 'ภาพรวม', i: 'layout-dashboard'},
+                            {id: 'inv', l: 'ต้นทุน', i: 'package'},
+                            {id: 'sale', l: 'ขาย', i: 'shopping-cart'},
+                            {id: 'report', l: 'รายงาน', i: 'pie-chart'},
+                            {id: 'data', l: 'ข้อมูล', i: 'database'}
+                        ].map(m => (
+                            <button key={m.id} onClick={()=>setTab(m.id)} className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all ${tab===m.id ? 'text-brand-600' : 'text-gray-400'}`}>
+                                <div className={`mb-1 transition-transform ${tab===m.id?'scale-110 -translate-y-1':''}`}>
+                                    <Icon name={m.i} size={24} className={tab===m.id ? 'fill-brand-100' : ''} />
+                                </div>
+                                <span className="text-[10px] font-bold">{m.l}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {toast && <Toast message={toast.message} type={toast.type} onClose={()=>setToast(null)} />}
                 </div>
             );
         };
