@@ -1,751 +1,632 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบบันทึกธุรกิจลอตเตอรี่</title>
-  <!-- ไม่ต้องใช้ data_sdk.js และ element_sdk.js อีกต่อไป -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      box-sizing: border-box;
-      font-family: 'Sarabun', 'Prompt', sans-serif;
-    }
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    .profit-positive { color: #10b981; }
-    .profit-negative { color: #ef4444; }
-    .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-    .input-focus:focus { outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); border-color: #3b82f6; }
-    .section-divider { border-left: 4px solid #e5e7eb; padding-left: 1rem; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery Pro - Cloud System</title>
     
-    /* เพิ่มส่วนสำหรับ Loading Overlay และ Message Box */
-    #loadingOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1.2rem;
-      z-index: 9999;
-    }
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    #messageBox {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 1rem 1.5rem;
-      border-radius: 0.5rem;
-      color: white;
-      font-weight: 600;
-      z-index: 10000;
-      opacity: 0;
-      transition: opacity 0.3s ease, top 0.3s ease;
-    }
-    #messageBox.show {
-      opacity: 1;
-      top: 40px;
-    }
-    #messageBox.success { background-color: #10b981; }
-    #messageBox.error { background-color: #ef4444; }
-    #messageBox.warning { background-color: #f59e0b; }
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-  </style>
-  <!-- <style>@view-transition { navigation: auto; }</style> -->
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #FAFAFA; color: #333; }
+        h1, h2, h3, .font-heading { font-family: 'Prompt', sans-serif; }
+        
+        /* Modern Inputs */
+        .modern-input { @apply w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100; }
+        
+        /* Modern Card */
+        .modern-card { @apply bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]; }
+        
+        /* Table */
+        .clean-table th { @apply text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-6 py-4 bg-gray-50/50 border-b border-gray-100; }
+        .clean-table td { @apply px-6 py-4 text-sm text-gray-600 border-b border-gray-50; }
+        .clean-table tr:last-child td { @apply border-b-0; }
+        .clean-table tr:hover td { @apply bg-indigo-50/30; }
+
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+    </style>
 </head>
-<body class="min-h-full">
+<body class="h-screen overflow-hidden bg-gray-50">
+    <div id="root" class="h-full"></div>
 
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="hidden">
-    <p>กำลังโหลดข้อมูล...</p>
-  </div>
-  
-  <!-- Message Box -->
-  <div id="messageBox"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
 
-  <div id="app" class="min-h-full p-4 md:p-6 max-w-6xl mx-auto">
-    
-    <!-- Header -->
-    <div class="mb-8 text-center">
-      <h1 id="pageTitle" class="text-3xl md:text-4xl font-bold mb-2">ระบบบันทึกธุรกิจลอตเตอรี่</h1>
-      <p class="text-base md:text-lg opacity-80">ติดตามผลกำไร-ขาดทุนในแต่ละงวดอย่างง่ายดาย</p>
-    </div>
+        // --- Configuration ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbx8vrpVJKtCt7vou3AgyqmCBlgkOgo1JqvBZhSrf2KgCTXpXUA_QM6_diAGlPcStZtO/exec";
+        const ITEM_TYPES = ['ลอตเตอรี่', '3N', 'อื่นๆ'];
 
-    <!-- Summary Dashboard -->
-    <div id="summaryDashboard" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-      <div class="card-shadow p-6 rounded-xl text-center">
-        <h3 class="text-sm font-medium opacity-70 mb-2">ต้นทุนรวมทั้งหมด</h3>
-        <p id="totalCosts" class="text-2xl md:text-3xl font-bold">฿0</p>
-      </div>
-      <div class="card-shadow p-6 rounded-xl text-center">
-        <h3 class="text-sm font-medium opacity-70 mb-2">รายรับรวมทั้งหมด</h3>
-        <p id="totalRevenue" class="text-2xl md:text-3xl font-bold">฿0</p>
-      </div>
-      <div class="card-shadow p-6 rounded-xl text-center">
-        <h3 class="text-sm font-medium opacity-70 mb-2">กำไร/ขาดทุนสุทธิ</h3>
-        <p id="netProfit" class="text-2xl md:text-3xl font-bold">฿0</p>
-      </div>
-      <div class="card-shadow p-6 rounded-xl text-center">
-        <h3 class="text-sm font-medium opacity-70 mb-2">จำนวนงวดทั้งหมด</h3>
-        <p id="totalPeriods" class="text-2xl md:text-3xl font-bold">0</p>
-      </div>
-    </div>
+        // --- Components ---
+        const Toast = ({ message, type, onClose }) => {
+            useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+            const colors = type === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
+            return (
+                <div className={`fixed top-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 rounded-full shadow-xl z-50 animate-fade-in ${colors} text-white`}>
+                    <span className="font-medium text-sm">{message}</span>
+                </div>
+            );
+        };
 
-    <!-- Add New Period Form -->
-    <div class="card-shadow p-6 rounded-xl mb-8">
-      <h2 class="text-xl md:text-2xl font-bold mb-6">📝 บันทึกข้อมูลงวดใหม่</h2>
-      <form id="periodForm" class="space-y-6">
-        <!-- Period Selection -->
-        <div class="section-divider">
-          <h3 class="text-lg font-semibold mb-4 text-blue-600">🗓️ เลือกงวด</h3>
-          <div class="space-y-4">
-            <div>
-              <label for="drawPeriod" class="block text-sm font-medium mb-2">งวดสลากกินแบ่งรัฐบาล</label>
-              <select id="drawPeriod" class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg text-base">
-                <option value="">-- เลือกงวด --</option>
-              </select>
-              <p class="text-xs text-gray-500 mt-1">งวดสลากกินแบ่งรัฐบาล (วันที่ 1, 16 ของทุกเดือน และ 30 ธ.ค. / ยกเว้น ม.ค. เริ่มวันที่ 17)</p>
+        const Icon = ({ name, size = 20, className }) => {
+            const ref = useRef(null);
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
+            return <i data-lucide={name} width={size} height={size} className={className}></i>;
+        };
+
+        const StatCard = ({ title, value, icon, accentColor }) => (
+            <div className="modern-card p-6 flex items-start justify-between hover:-translate-y-1 transition-transform duration-300">
+                <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{title}</p>
+                    <h3 className="text-3xl font-heading font-bold text-gray-800">{value}</h3>
+                </div>
+                <div className={`p-3 rounded-2xl ${accentColor} bg-opacity-10`}>
+                    <Icon name={icon} className={accentColor.replace('bg-', 'text-')} size={24} />
+                </div>
             </div>
-            <div>
-              <label for="drawDate" class="block text-sm font-medium mb-2">หรือเลือกวันที่เอง</label>
-              <input type="date" id="drawDate" class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg text-base">
-              <p class="text-xs text-gray-500 mt-1">สำหรับงวดพิเศษหรือวันที่อื่นๆ</p>
-            </div>
-          </div>
-        </div>
-        <!-- Cost Tracking -->
-        <div class="section-divider">
-          <h3 class="text-lg font-semibold mb-4 text-red-600">💰 บันทึกต้นทุน</h3>
-          <div>
-            <label for="lotteryCost" class="block text-sm font-medium mb-2">ต้นทุนสลากฯ (บาท) *</label>
-            <input type="number" id="lotteryCost" required min="0" step="0.01" placeholder="48,500.00" class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg text-base">
-            <p class="text-xs text-gray-500 mt-1">เช่น รับสลากฯ 500 ใบ ใบละ 97 บาท = 48,500</p>
-          </div>
-        </div>
-        <!-- Sales Tracking -->
-        <div class="section-divider">
-          <h3 class="text-lg font-semibold mb-4 text-green-600">💵 บันทึกยอดขาย</h3>
-          <div>
-            <label for="totalSales" class="block text-sm font-medium mb-2">ยอดขายรวม (บาท) *</label>
-            <input type="number" id="totalSales" required min="0" step="0.01" placeholder="52,000.00" class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg text-base">
-            <p class="text-xs text-gray-500 mt-1">ยอดเงินรวมที่ขายสลากฯ ได้ทั้งหมด</p>
-          </div>
-        </div>
-        <!-- Notes -->
-        <div>
-          <label for="notes" class="block text-sm font-medium mb-2">หมายเหตุเพิ่มเติม</label>
-          <textarea id="notes" rows="3" placeholder="บันทึกรายละเอียดเพิ่มเติม..." class="input-focus w-full px-4 py-3 border border-gray-300 rounded-lg text-base"></textarea>
-        </div>
-        <!-- Profit Preview -->
-        <div id="profitPreview" class="p-4 rounded-lg border-2 border-dashed border-gray-300 text-center hidden">
-          <h4 class="text-lg font-semibold mb-2">💡 ผลกำไร/ขาดทุนคาดการณ์</h4>
-          <p id="previewAmount" class="text-2xl font-bold">฿0</p>
-          <p class="text-sm opacity-70 mt-1">คำนวณจาก: ยอดขาย - ต้นทุนสลากฯ</p>
-        </div>
-        
-        <button type="submit" id="saveButton" class="w-full py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105">
-          บันทึกข้อมูลงวด
-        </button>
-      </form>
-      <!-- ลบ recordLimit ออก เพราะ Google Sheet รองรับได้เยอะมาก -->
-    </div>
+        );
 
-    <!-- Historical Records -->
-    <div>
-      <div class="flex justify-between items-center mb-6">
-        <h2 id="summaryMainTitle" class="text-xl md:text-2xl font-bold">📊 สรุปผลประกอบการ</h2>
-        <div class="flex gap-2">
-          <button id="sortByDate" class="px-4 py-2 text-sm rounded-lg border transition-colors">เรียงตามวันที่</button>
-          <button id="sortByProfit" class="px-4 py-2 text-sm rounded-lg border transition-colors">เรียงตามกำไร</button>
-        </div>
-      </div>
-      <div id="recordsList" class="space-y-4">
-        <!-- Records will be inserted here -->
-      </div>
-      <div id="emptyState" class="text-center py-16 opacity-60">
-        <div class="text-6xl mb-4">📋</div>
-        <p class="text-xl mb-2">ยังไม่มีข้อมูลงวดใดๆ</p>
-        <p class="text-sm">เริ่มต้นโดยบันทึกข้อมูลงวดแรกของคุณด้านบน</p>
-      </div>
-    </div>
-  </div>
+        // --- Main App ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [toast, setToast] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [isSyncing, setIsSyncing] = useState(false);
+            
+            // Data
+            const [periods, setPeriods] = useState([]);
+            const [inventory, setInventory] = useState([]);
+            const [sales, setSales] = useState([]);
+            const [currentPeriodId, setCurrentPeriodId] = useState('');
 
-  <script>
-    // ค่า Config เริ่มต้น (เนื่องจากไม่มี elementSdk แล้ว)
-    const defaultConfig = {
-      background_color: "#f8fafc",
-      surface_color: "#ffffff",
-      text_color: "#1e293b",
-      primary_action_color: "#3b82f6",
-      secondary_action_color: "#ef4444",
-      font_family: "Sarabun",
-      font_size: 16,
-      page_title: "ระบบบันทึกธุรกิจลอตเตอรี่",
-      save_button_text: "บันทึกข้อมูลงวด",
-      summary_title: "สรุปผลประกอบการ"
-    };
+            // Initial Load
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+                loadData();
+            }, []);
 
-    let records = [];
-    let isSubmitting = false;
-    let sortMode = 'date'; // 'date' or 'profit'
+            // Helper Functions
+            const showToast = (msg, type = 'success') => setToast({ message: msg, type });
 
-    // --- ฟังก์ชันใหม่สำหรับ UI ---
-    
-    function showLoading(message = "กำลังประมวลผล...") {
-      const overlay = document.getElementById("loadingOverlay");
-      overlay.querySelector('p').textContent = message;
-      overlay.classList.remove("hidden");
-    }
+            const loadData = async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`${API_URL}?action=read`);
+                    const data = await res.json();
+                    if (data.periods) {
+                        setPeriods(data.periods);
+                        setInventory(data.inventory);
+                        setSales(data.sales);
+                        // Set current period to latest if not set
+                        if (data.periods.length > 0 && !currentPeriodId) {
+                            // Sort periods by date descending to get latest
+                            const sorted = [...data.periods].sort((a,b) => new Date(b.date) - new Date(a.date));
+                            setCurrentPeriodId(sorted[0].id);
+                        }
+                    }
+                } catch (e) {
+                    showToast("โหลดข้อมูลไม่สำเร็จ: " + e.message, "error");
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-    function hideLoading() {
-      document.getElementById("loadingOverlay").classList.add("hidden");
-    }
+            const saveData = async (newData) => {
+                setIsSyncing(true);
+                // Optimistic Update
+                if (newData.periods) setPeriods(newData.periods);
+                if (newData.inventory) setInventory(newData.inventory);
+                if (newData.sales) setSales(newData.sales);
 
-    function showMessage(message, type = "success", duration = 3000) {
-      const msgBox = document.getElementById("messageBox");
-      msgBox.textContent = message;
-      msgBox.className = type; // 'success', 'error', 'warning'
-      
-      setTimeout(() => {
-        msgBox.classList.add("show");
-      }, 10); // หน่วงเล็กน้อยเพื่อให้ transition ทำงาน
+                const payload = {
+                    periods: newData.periods || periods,
+                    inventory: newData.inventory || inventory,
+                    sales: newData.sales || sales
+                };
 
-      setTimeout(() => {
-        msgBox.classList.remove("show");
-      }, duration);
-    }
-    
-    // --- สิ้นสุดฟังก์ชันใหม่ ---
+                try {
+                    await fetch(API_URL + "?action=sync", {
+                        method: 'POST',
+                        body: JSON.stringify(payload),
+                        headers: { "Content-Type": "text/plain" }
+                    });
+                } catch (e) {
+                    showToast("บันทึกข้อมูลไม่สำเร็จ (ตรวจสอบอินเทอร์เน็ต)", "error");
+                } finally {
+                    setIsSyncing(false);
+                }
+            };
 
+            // Calculations
+            const getStats = (pId) => {
+                const cost = inventory.filter(i => i.periodId === pId).reduce((sum, i) => sum + (i.totalCost || 0), 0);
+                const revenue = sales.filter(s => s.periodId === pId).reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+                return { cost, revenue, profit: revenue - cost };
+            };
+            const currentStats = useMemo(() => getStats(currentPeriodId), [currentPeriodId, inventory, sales]);
 
-    // แก้ไข initializeApp เพื่อเรียกใช้ google.script.run
-    async function initializeApp() {
-      // 1. ใช้สไตล์เริ่มต้น
-      applyConfigStyles(defaultConfig); 
-      
-      // 2. ตั้งค่า Event Listeners
-      setupEventListeners();
-      setupProfitPreview();
-      populateLotteryPeriods();
-      
-      // 3. ตรวจสอบว่ารันใน Google Apps Script environment หรือไม่
-      if (typeof google === 'undefined' || !google.script || !google.script.run) {
-        // ถ้า google.script.run ไม่มีอยู่ (เช่น รันใน local/preview)
-        hideLoading(); // ซ่อน loading
-        
-        // แสดงข้อความใน emptyState
-        const emptyState = document.getElementById('emptyState');
-        emptyState.innerHTML = `
-          <div class="text-4xl mb-4">🔌</div>
-          <p class="text-xl mb-2">การเชื่อมต่อล้มเหลว</p>
-          <p class="text-sm">แอปนี้ต้องถูกรันจาก URL ที่ได้หลังจากการ Deploy บน Google Apps Script เท่านั้น</p>
-          <p class="text-sm mt-2">โปรดดูขั้นตอนในไฟล์ README.md (หากมี)</p>
-        `;
-        emptyState.classList.remove('hidden');
-        document.getElementById('recordsList').innerHTML = '';
-        
-        // ปิดการใช้งานฟอร์ม
-        const saveButton = document.getElementById('saveButton');
-        saveButton.disabled = true;
-        saveButton.textContent = 'ไม่สามารถบันทึก (ต้อง Deploy ก่อน)';
-        saveButton.style.opacity = '0.5';
-        saveButton.style.backgroundColor = '#9ca3af'; // สีเทา
-        
-        showMessage("⚠️ ไม่พบ Google Apps Script", "warning", 5000);
-        return; // หยุดการทำงาน
-      }
+            // Handlers
+            const handleAddPeriod = () => {
+                const date = prompt("วันที่งวดใหม่ (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+                if (date) {
+                    const newId = `p_${Date.now()}`;
+                    const newPeriods = [{ id: newId, date }, ...periods];
+                    setCurrentPeriodId(newId);
+                    saveData({ periods: newPeriods });
+                    showToast("เพิ่มงวดใหม่เรียบร้อย");
+                }
+            };
 
-      // 4. ดึงข้อมูลเริ่มต้นจาก Google Sheet (ถ้ารันถูกที่)
-      showLoading("กำลังโหลดข้อมูลเริ่มต้น...");
-      google.script.run
-        .withSuccessHandler(onDataLoaded)
-        .withFailureHandler(onDataError)
-        .getData();
-    }
+            // --- Data Management Handlers ---
+            const handleExport = () => {
+                const data = { periods, inventory, sales, version: "cloud-v1" };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `lottery_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast("ส่งออกข้อมูล Backup สำเร็จ");
+            };
 
-    /**
-     * @description Callback เมื่อโหลดข้อมูลสำเร็จ
-     */
-    function onDataLoaded(data) {
-      hideLoading();
-      records = data || [];
-      renderRecords();
-      updateSummaryDashboard();
-    }
+            const handleImportJSON = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data.periods && data.inventory && data.sales) {
+                            if(confirm("คำเตือน: การนำเข้า Backup จะอัปโหลดขึ้น Google Sheet และแทนที่ข้อมูลเดิมทั้งหมด\nยืนยันที่จะทำต่อหรือไม่?")) {
+                                saveData(data);
+                                if (data.periods.length > 0) setCurrentPeriodId(data.periods[0].id);
+                                showToast("กู้คืนข้อมูลและเริ่มซิงค์สำเร็จ");
+                            }
+                        } else {
+                            showToast("รูปแบบไฟล์ Backup ไม่ถูกต้อง", "error");
+                        }
+                    } catch (err) {
+                        showToast("ไม่สามารถอ่านไฟล์ได้", "error");
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            };
 
-    /**
-     * @description Callback เมื่อโหลดข้อมูลไม่สำเร็จ
-     */
-    function onDataError(error) {
-      hideLoading();
-      showMessage("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + error.message, "error");
-    }
+            const handleImportCSV = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    
+                    let newPeriods = [...periods];
+                    let newInventory = [...inventory];
+                    let newSales = [...sales];
+                    let count = 0;
 
-    // dataHandler ไม่จำเป็นอีกต่อไป
+                    lines.forEach((line, index) => {
+                        if (index === 0) return; // Skip Header
+                        const cols = line.split(',');
+                        if (cols.length < 3) return;
+                        
+                        const date = cols[0]?.trim();
+                        const cost = parseFloat(cols[1]) || 0;
+                        const sale = parseFloat(cols[2]) || 0;
+                        
+                        if (date && (cost > 0 || sale > 0)) {
+                            const pId = `p_csv_${Date.now()}_${index}`;
+                            newPeriods.push({ id: pId, date: date });
+                            
+                            if (cost > 0) {
+                                newInventory.push({
+                                    id: `inv_csv_${Date.now()}_${index}`,
+                                    periodId: pId,
+                                    source: 'CSV Import',
+                                    type: 'อื่นๆ', 
+                                    qty: 1,
+                                    unitCost: cost,
+                                    totalCost: cost
+                                });
+                            }
+                            
+                            if (sale > 0) {
+                                newSales.push({
+                                    id: `sale_csv_${Date.now()}_${index}`,
+                                    periodId: pId,
+                                    date: date,
+                                    customer: 'CSV Import',
+                                    type: 'อื่นๆ',
+                                    qty: 1,
+                                    price: sale,
+                                    totalPrice: sale,
+                                    payment: 'เงินสด'
+                                });
+                            }
+                            count++;
+                        }
+                    });
+                    
+                    if (count > 0) {
+                        if(confirm(`พบข้อมูล ${count} รายการ ต้องการนำเข้าและอัปโหลดขึ้น Google Sheet หรือไม่?`)) {
+                            saveData({ periods: newPeriods, inventory: newInventory, sales: newSales });
+                            setCurrentPeriodId(newPeriods[newPeriods.length - 1].id);
+                            showToast(`นำเข้า CSV สำเร็จ ${count} รายการ`);
+                        }
+                    } else {
+                        showToast("ไม่พบข้อมูลที่นำเข้าได้ใน CSV", "error");
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            };
 
-    function applyConfigStyles(config) {
-      // ฟังก์ชันนี้จะใช้ค่า defaultConfig เพราะไม่มี elementSdk
-      const customFont = config.font_family;
-      const baseFontStack = 'Sarabun, Prompt, sans-serif';
-      const baseSize = config.font_size;
-      
-      document.body.style.fontFamily = `${customFont}, ${baseFontStack}`;
-      document.body.style.backgroundColor = config.background_color;
-      document.body.style.color = config.text_color;
-      
-      document.getElementById('pageTitle').textContent = config.page_title;
-      // document.getElementById('pageTitle').style.fontSize = `${baseSize * 2}px`; // ใช้ CSS
-      
-      document.getElementById('summaryMainTitle').textContent = config.summary_title;
-      // document.getElementById('summaryMainTitle').style.fontSize = `${baseSize * 1.25}px`; // ใช้ CSS
-      
-      const saveButton = document.getElementById('saveButton');
-      // ตรวจสอบว่าปุ่มไม่ได้ถูก disable จาก initializeApp ก่อน
-      if (!saveButton.disabled) {
-        saveButton.textContent = config.save_button_text;
-        saveButton.style.backgroundColor = config.primary_action_color;
-        saveButton.style.color = '#ffffff';
-      }
-      
-      const cards = document.querySelectorAll('.card-shadow');
-      cards.forEach(card => {
-        card.style.backgroundColor = config.surface_color;
-        card.style.color = config.text_color;
-      });
-      
-      // const labels = document.querySelectorAll('label');
-      // labels.forEach(label => {
-      //   label.style.color = config.text_color;
-      //   label.style.fontSize = `${baseSize * 0.875}px`; // ใช้ CSS
-      // });
-      
-      renderRecords(); // วาด record ใหม่ด้วยสีที่ถูกต้อง
-    }
+            // --- Views ---
+            const InventoryView = () => {
+                const items = inventory.filter(i => i.periodId === currentPeriodId);
+                const update = (newItems) => saveData({ inventory: newItems });
 
-    function setupEventListeners() {
-      document.getElementById('periodForm').addEventListener('submit', handleFormSubmit);
-      document.getElementById('sortByDate').addEventListener('click', () => setSortMode('date'));
-      document.getElementById('sortByProfit').addEventListener('click', () => setSortMode('profit'));
-      
-      document.getElementById('drawPeriod').addEventListener('change', function() {
-        const selectedDate = this.value;
-        if (selectedDate) {
-          document.getElementById('drawDate').value = selectedDate;
-        }
-      });
-      
-      document.getElementById('drawDate').addEventListener('change', function() {
-        if (this.value) {
-          document.getElementById('drawPeriod').value = '';
-        }
-      });
-    }
+                return (
+                    <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-hidden">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-heading font-bold text-gray-800">จัดการต้นทุน</h2>
+                                <p className="text-gray-500 text-sm">งวดวันที่ {periods.find(p=>p.id===currentPeriodId)?.date}</p>
+                            </div>
+                            <button onClick={() => update([...inventory, { id: Date.now(), periodId: currentPeriodId, source: '', type: 'ลอตเตอรี่', qty: 100, unitCost: 80, totalCost: 8000 }])} 
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition-all">
+                                <Icon name="plus" size={18} /> เพิ่มรายการ
+                            </button>
+                        </div>
+                        <div className="modern-card flex-1 flex flex-col overflow-hidden">
+                            <div className="overflow-auto flex-1 custom-scroll">
+                                <table className="w-full clean-table">
+                                    <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                                        <tr>
+                                            <th>แหล่งที่มา</th>
+                                            <th>ประเภท</th>
+                                            <th className="text-right">จำนวน</th>
+                                            <th className="text-right">ทุน/หน่วย</th>
+                                            <th className="text-right">รวมเงิน</th>
+                                            <th className="w-16"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {items.length === 0 ? <tr><td colSpan="6" className="text-center py-20 text-gray-400">ยังไม่มีข้อมูลต้นทุน</td></tr> : items.map(r => (
+                                            <tr key={r.id}>
+                                                <td className="p-2"><input className="modern-input" value={r.source} onChange={e => update(inventory.map(x => x.id === r.id ? {...x, source: e.target.value} : x))} placeholder="ระบุที่มา..." /></td>
+                                                <td className="p-2 w-40">
+                                                    <select className="modern-input cursor-pointer" value={r.type} onChange={e => update(inventory.map(x => x.id === r.id ? {...x, type: e.target.value} : x))}>
+                                                        {ITEM_TYPES.map(t => <option key={t}>{t}</option>)}
+                                                    </select>
+                                                </td>
+                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.qty} onChange={e => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    update(inventory.map(x => x.id === r.id ? {...x, qty: val, totalCost: val * x.unitCost} : x));
+                                                }} /></td>
+                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.unitCost} onChange={e => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    update(inventory.map(x => x.id === r.id ? {...x, unitCost: val, totalCost: val * x.qty} : x));
+                                                }} /></td>
+                                                <td className="text-right font-bold text-gray-700">฿{r.totalCost.toLocaleString()}</td>
+                                                <td className="text-center"><button onClick={() => update(inventory.filter(x => x.id !== r.id))} className="text-gray-300 hover:text-rose-500 transition-colors"><Icon name="trash-2" size={18} /></button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center px-8">
+                                <span className="text-sm font-semibold text-gray-500">รวมต้นทุนทั้งหมด</span>
+                                <span className="text-xl font-bold text-gray-800">฿{currentStats.cost.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
 
-    function setupProfitPreview() {
-      const inputs = ['lotteryCost', 'totalSales'];
-      inputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', updateProfitPreview);
-      });
-    }
+            const SalesView = () => {
+                const items = sales.filter(s => s.periodId === currentPeriodId);
+                const update = (newItems) => saveData({ sales: newItems });
 
-    function updateProfitPreview() {
-      const lotteryCost = parseFloat(document.getElementById('lotteryCost').value) || 0;
-      const totalSales = parseFloat(document.getElementById('totalSales').value) || 0;
-      
-      const netProfit = totalSales - lotteryCost;
-      
-      const previewDiv = document.getElementById('profitPreview');
-      const previewAmount = document.getElementById('previewAmount');
-      
-      if (lotteryCost > 0 || totalSales > 0) {
-        previewDiv.classList.remove('hidden');
-        previewAmount.textContent = `${netProfit >= 0 ? '+' : ''}฿${Math.abs(netProfit).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        previewAmount.className = `text-2xl font-bold ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}`;
-        
-        if (netProfit >= 0) {
-          previewDiv.style.borderColor = '#10b981';
-          previewDiv.style.backgroundColor = '#f0fdf4';
-        } else {
-          previewDiv.style.borderColor = '#ef4444';
-          previewDiv.style.backgroundColor = '#fef2f2';
-        }
-      } else {
-        previewDiv.classList.add('hidden');
-      }
-    }
+                return (
+                    <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-hidden">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-heading font-bold text-gray-800">บันทึกยอดขาย</h2>
+                                <p className="text-gray-500 text-sm">งวดวันที่ {periods.find(p=>p.id===currentPeriodId)?.date}</p>
+                            </div>
+                            <button onClick={() => update([...sales, { id: Date.now(), periodId: currentPeriodId, date: new Date().toISOString().split('T')[0], customer: '', type: 'ลอตเตอรี่', qty: 1, price: 100, totalPrice: 100 }])} 
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all">
+                                <Icon name="plus" size={18} /> บันทึกขาย
+                            </button>
+                        </div>
+                        <div className="modern-card flex-1 flex flex-col overflow-hidden">
+                            <div className="overflow-auto flex-1 custom-scroll">
+                                <table className="w-full clean-table">
+                                    <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                                        <tr>
+                                            <th className="w-40">วันที่</th>
+                                            <th>ลูกค้า</th>
+                                            <th>ประเภท</th>
+                                            <th className="text-right">ราคา</th>
+                                            <th className="text-right">จำนวน</th>
+                                            <th className="text-right">รวมเงิน</th>
+                                            <th className="w-16"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {items.length === 0 ? <tr><td colSpan="7" className="text-center py-20 text-gray-400">ยังไม่มียอดขาย</td></tr> : items.map(r => (
+                                            <tr key={r.id}>
+                                                <td className="p-2"><input type="date" className="modern-input text-gray-500" value={r.date} onChange={e => update(sales.map(x => x.id === r.id ? {...x, date: e.target.value} : x))} /></td>
+                                                <td className="p-2"><input className="modern-input" value={r.customer} onChange={e => update(sales.map(x => x.id === r.id ? {...x, customer: e.target.value} : x))} placeholder="ลูกค้า..." /></td>
+                                                <td className="p-2 w-40">
+                                                    <select className="modern-input cursor-pointer" value={r.type} onChange={e => update(sales.map(x => x.id === r.id ? {...x, type: e.target.value} : x))}>
+                                                        {ITEM_TYPES.map(t => <option key={t}>{t}</option>)}
+                                                    </select>
+                                                </td>
+                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.price} onChange={e => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    update(sales.map(x => x.id === r.id ? {...x, price: val, totalPrice: val * x.qty} : x));
+                                                }} /></td>
+                                                <td className="p-2 w-32"><input type="number" className="modern-input text-right font-medium" value={r.qty} onChange={e => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    update(sales.map(x => x.id === r.id ? {...x, qty: val, totalPrice: val * x.price} : x));
+                                                }} /></td>
+                                                <td className="text-right font-bold text-emerald-600">฿{r.totalPrice.toLocaleString()}</td>
+                                                <td className="text-center"><button onClick={() => update(sales.filter(x => x.id !== r.id))} className="text-gray-300 hover:text-rose-500 transition-colors"><Icon name="trash-2" size={18} /></button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-between items-center px-8">
+                                <span className="text-sm font-semibold text-gray-500">ยอดขายรวมทั้งหมด</span>
+                                <span className="text-xl font-bold text-emerald-600">฿{currentStats.revenue.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
 
-    function setSortMode(mode) {
-      sortMode = mode;
-      
-      document.getElementById('sortByDate').classList.toggle('bg-blue-100', mode === 'date');
-      document.getElementById('sortByProfit').classList.toggle('bg-blue-100', mode === 'profit');
-      
-      renderRecords();
-    }
+            const ReportsView = () => {
+                const reportData = periods.map(p => {
+                    const stats = getStats(p.id);
+                    return { ...p, ...stats, margin: stats.cost > 0 ? (stats.profit / stats.cost) * 100 : 0 };
+                }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // แก้ไข handleFormSubmit เพื่อเรียกใช้ google.script.run
-    async function handleFormSubmit(e) {
-      e.preventDefault();
-      
-      // ตรวจสอบ Google Script API ก่อน
-      if (typeof google === 'undefined' || !google.script || !google.script.run) {
-        showMessage("⚠️ ไม่สามารถบันทึกได้ แอปนี้ต้องรันจาก Google Apps Script URL", "error");
-        return;
-      }
-      
-      if (isSubmitting) return;
-      
-      const drawDate = document.getElementById('drawDate').value;
-      
-      if (!drawDate) {
-        showMessage("⚠️ กรุณาเลือกงวดหรือวันที่ออกรางวัล", "warning");
-        return;
-      }
-      
-      const lotteryCost = parseFloat(document.getElementById('lotteryCost').value) || 0;
-      const totalSales = parseFloat(document.getElementById('totalSales').value) || 0;
-      const notes = document.getElementById('notes').value.trim();
-      
-      const netProfit = totalSales - lotteryCost;
-      
-      const saveButton = document.getElementById('saveButton');
-      const originalText = saveButton.textContent;
-      saveButton.textContent = 'กำลังบันทึก...';
-      saveButton.disabled = true;
-      saveButton.style.opacity = '0.5';
-      isSubmitting = true;
-      
-      const newRecord = {
-        id: `period_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        draw_date: drawDate,
-        lottery_cost: lotteryCost,
-        total_sales: totalSales,
-        net_profit: netProfit,
-        notes: notes,
-        created_at: new Date().toISOString()
-      };
-      
-      // เรียกใช้ Google Apps Script
-      google.script.run
-        .withSuccessHandler(onRecordCreated)
-        .withFailureHandler(onSaveError)
-        .createRecord(newRecord);
-    }
+                const totalProfit = reportData.reduce((sum, r) => sum + r.profit, 0);
+                const bestPeriod = reportData.reduce((best, current) => (current.profit > best.profit ? current : best), reportData[0] || { profit: 0 });
 
-    /**
-     * @description Callback เมื่อบันทึกข้อมูลสำเร็จ
-     */
-    function onRecordCreated(createdRecord) {
-      isSubmitting = false;
-      const saveButton = document.getElementById('saveButton');
-      saveButton.textContent = defaultConfig.save_button_text; // ใช้ค่าจาก defaultConfig
-      saveButton.disabled = false;
-      saveButton.style.opacity = '1';
+                return (
+                    <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-hidden">
+                        <h2 className="text-2xl font-heading font-bold text-gray-800 mb-6">รายงานสรุป (Reports)</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="modern-card p-6 border-l-4 border-indigo-500">
+                                <p className="text-gray-500 text-sm mb-1">กำไรรวมทุกงวด</p>
+                                <h3 className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+                                    {totalProfit >= 0 ? '+' : ''}{totalProfit.toLocaleString()}
+                                </h3>
+                            </div>
+                            <div className="modern-card p-6 border-l-4 border-emerald-500">
+                                <p className="text-gray-500 text-sm mb-1">งวดที่กำไรสูงสุด</p>
+                                <h3 className="text-xl font-bold text-gray-800 mb-1">
+                                    {bestPeriod.date ? new Date(bestPeriod.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: '2-digit'}) : '-'}
+                                </h3>
+                                <p className="text-xs text-emerald-600">กำไร: {bestPeriod.profit?.toLocaleString()}</p>
+                            </div>
+                            <div className="modern-card p-6 border-l-4 border-gray-400">
+                                <p className="text-gray-500 text-sm mb-1">จำนวนงวดทั้งหมด</p>
+                                <h3 className="text-3xl font-bold text-gray-800">{periods.length} งวด</h3>
+                            </div>
+                        </div>
+                        <div className="modern-card flex-1 flex flex-col overflow-hidden">
+                            <div className="overflow-auto flex-1 custom-scroll">
+                                <table className="w-full clean-table">
+                                    <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                                        <tr>
+                                            <th>งวดวันที่</th>
+                                            <th className="text-right">ต้นทุน</th>
+                                            <th className="text-right">ยอดขาย</th>
+                                            <th className="text-right">กำไร/ขาดทุน</th>
+                                            <th className="text-right">Margin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {reportData.map(r => (
+                                            <tr key={r.id}>
+                                                <td className="font-medium">{new Date(r.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}</td>
+                                                <td className="text-right text-gray-500">{r.cost.toLocaleString()}</td>
+                                                <td className="text-right text-gray-500">{r.revenue.toLocaleString()}</td>
+                                                <td className={`text-right font-bold ${r.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {r.profit.toLocaleString()}
+                                                </td>
+                                                <td className="text-right text-xs">
+                                                    <span className={`px-2 py-1 rounded-full ${r.margin >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                        {r.margin.toFixed(1)}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
 
-      document.getElementById('periodForm').reset();
-      document.getElementById('profitPreview').classList.add('hidden');
-      
-      showMessage("✅ บันทึกข้อมูลงวดเรียบร้อยแล้ว", "success");
-      
-      // อัปเดต UI ทันที
-      records.push(createdRecord);
-      renderRecords();
-      updateSummaryDashboard();
-    }
+            const DataManagementView = () => (
+                <div className="h-full flex flex-col animate-fade-in p-6 md:p-8 overflow-y-auto custom-scroll">
+                    <h2 className="text-2xl font-heading font-bold text-gray-800 mb-2">จัดการข้อมูล (Data Management)</h2>
+                    <p className="text-gray-500 mb-8">สำรองข้อมูล นำเข้า หรือกู้คืนข้อมูล</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
+                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><Icon name="download" size={24} /></div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">ส่งออกข้อมูล (Backup)</h3>
+                            <p className="text-sm text-gray-500 mb-6">ดาวน์โหลดข้อมูลทั้งหมดเก็บไว้เป็นไฟล์ .json เพื่อความปลอดภัย</p>
+                            <button onClick={handleExport} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"><Icon name="download" size={18} /> ดาวน์โหลด Backup</button>
+                        </div>
+                        <div className="modern-card p-8 hover:shadow-lg transition-shadow">
+                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4"><Icon name="upload" size={24} /></div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">นำเข้า Backup (.json)</h3>
+                            <p className="text-sm text-gray-500 mb-6">กู้คืนข้อมูลจากไฟล์ Backup ที่เคยดาวน์โหลดไว้</p>
+                            <div className="relative">
+                                <input type="file" onChange={handleImportJSON} accept=".json" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="refresh-cw" size={18} /> เลือกไฟล์ Backup</button>
+                            </div>
+                        </div>
+                        <div className="modern-card p-8 hover:shadow-lg transition-shadow md:col-span-2">
+                            <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4"><Icon name="file-spreadsheet" size={24} /></div>
+                            <h3 className="text-lg font-bold text-gray-800 mb-2">นำเข้าจาก Excel/CSV</h3>
+                            <p className="text-sm text-gray-500 mb-6">นำเข้าประวัติเก่าจากไฟล์ .csv (ต้องมีคอลัมน์: วันที่, ต้นทุน, ยอดขาย)</p>
+                            <div className="relative">
+                                <input type="file" onChange={handleImportCSV} accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                <button className="w-full py-3 bg-white border-2 border-orange-100 text-orange-600 hover:bg-orange-50 rounded-xl font-medium transition-all flex items-center justify-center gap-2 pointer-events-none"><Icon name="file-plus" size={18} /> เลือกไฟล์ CSV</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
 
-    /**
-     * @description Callback เมื่อบันทึกข้อมูลไม่สำเร็จ
-     */
-    function onSaveError(error) {
-      isSubmitting = false;
-      const saveButton = document.getElementById('saveButton');
-      saveButton.textContent = defaultConfig.save_button_text;
-      saveButton.disabled = false;
-      saveButton.style.opacity = '1';
+            const DashboardView = () => (
+                <div className="max-w-5xl mx-auto py-8 px-6 animate-fade-in">
+                    <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h1 className="text-3xl font-heading font-bold text-gray-800">ภาพรวมธุรกิจ</h1>
+                            <p className="text-gray-500 mt-1">ข้อมูลล่าสุดจาก Google Sheet</p>
+                        </div>
+                        {isSyncing && <div className="flex items-center gap-2 text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full text-xs font-medium animate-pulse"><Icon name="refresh-cw" size={14} className="animate-spin" /> กำลังบันทึก...</div>}
+                    </div>
 
-      showMessage("❌ เกิดข้อผิดพลาดในการบันทึก: " + error.message, "error");
-    }
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        <StatCard title="ต้นทุน (Cost)" value={`฿${currentStats.cost.toLocaleString()}`} icon="package" accentColor="bg-rose-500" />
+                        <StatCard title="รายรับ (Revenue)" value={`฿${currentStats.revenue.toLocaleString()}`} icon="trending-up" accentColor="bg-emerald-500" />
+                        <StatCard title="กำไรสุทธิ (Profit)" value={`${currentStats.profit >= 0 ? '+' : ''}฿${currentStats.profit.toLocaleString()}`} icon="wallet" accentColor={currentStats.profit >= 0 ? "bg-indigo-600" : "bg-orange-500"} />
+                    </div>
 
-    function updateSummaryDashboard() {
-      const totalCosts = records.reduce((sum, r) => sum + r.lottery_cost, 0);
-      const totalRevenue = records.reduce((sum, r) => sum + r.total_sales, 0);
-      const netProfit = totalRevenue - totalCosts;
-      
-      document.getElementById('totalCosts').textContent = 
-        `฿${totalCosts.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      document.getElementById('totalRevenue').textContent = 
-        `฿${totalRevenue.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      
-      const netProfitElement = document.getElementById('netProfit');
-      netProfitElement.textContent = 
-        `${netProfit >= 0 ? '+' : ''}฿${Math.abs(netProfit).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      netProfitElement.className = `text-2xl md:text-3xl font-bold ${netProfit >= 0 ? 'profit-positive' : 'profit-negative'}`;
-      
-      document.getElementById('totalPeriods').textContent = records.length;
-    }
+                    <h3 className="text-lg font-heading font-bold text-gray-700 mb-4">สถานะงวดบัญชี</h3>
+                    {periods.length === 0 ? (
+                        <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-400">ยังไม่มีงวดบัญชี กดปุ่ม "+" ด้านซ้ายเพื่อเริ่ม</div>
+                    ) : (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <table className="w-full clean-table">
+                                <thead className="bg-gray-50"><tr><th>งวดวันที่</th><th className="text-right">สถานะ</th></tr></thead>
+                                <tbody>
+                                    {periods.map(p => (
+                                        <tr key={p.id} className={p.id === currentPeriodId ? "bg-indigo-50/40" : ""}>
+                                            <td className="font-medium text-gray-800 flex items-center gap-3">
+                                                {new Date(p.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}
+                                                {p.id === currentPeriodId && <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 tracking-wider">LATEST</span>}
+                                            </td>
+                                            <td className="text-right">
+                                                <button onClick={() => {setCurrentPeriodId(p.id); setActiveTab('inventory');}} className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold hover:underline">จัดการข้อมูล</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
 
-    function renderRecords() {
-      const recordsList = document.getElementById('recordsList');
-      const emptyState = document.getElementById('emptyState');
-      
-      if (!records || records.length === 0) {
-        recordsList.innerHTML = '';
-        // ถ้า emptyState มีข้อความเตือนเรื่อง deploy อยู่แล้ว ก็ไม่ต้องเปลี่ยน
-        if (!document.querySelector('#emptyState p').textContent.includes('การเชื่อมต่อล้มเหลว')) {
-           emptyState.innerHTML = `
-            <div class="text-6xl mb-4">📋</div>
-            <p class="text-xl mb-2">ยังไม่มีข้อมูลงวดใดๆ</p>
-            <p class="text-sm">เริ่มต้นโดยบันทึกข้อมูลงวดแรกของคุณด้านบน</p>
-          `;
-        }
-        emptyState.classList.remove('hidden');
-        return;
-      }
-      
-      emptyState.classList.add('hidden');
-      
-      let sortedRecords = [...records];
-      if (sortMode === 'date') {
-        sortedRecords.sort((a, b) => new Date(b.draw_date) - new Date(a.draw_date));
-      } else {
-        sortedRecords.sort((a, b) => b.net_profit - a.net_profit);
-      }
-      
-      recordsList.innerHTML = '';
-      
-      sortedRecords.forEach(record => {
-        const recordElement = createRecordElement(record);
-        recordsList.appendChild(recordElement);
-      });
-    }
+            // --- Layout ---
+            if (loading && periods.length === 0) {
+                return <div className="h-screen flex items-center justify-center bg-gray-50 text-gray-400 gap-3 flex-col"><div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div><p className="text-sm">กำลังเชื่อมต่อฐานข้อมูล...</p></div>;
+            }
 
-    function createRecordElement(record) {
-      const div = document.createElement('div');
-      div.className = 'card-shadow p-6 rounded-xl';
-      div.dataset.recordId = record.id;
-      
-      const config = defaultConfig; // ใช้ defaultConfig
-      div.style.backgroundColor = config.surface_color;
-      div.style.color = config.text_color;
-      
-      const drawDate = new Date(record.draw_date);
-      const formattedDate = drawDate.toLocaleDateString('th-TH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'UTC' // ป้องกันปัญหา Timezone
-      });
-      
-      const profitClass = record.net_profit >= 0 ? 'profit-positive' : 'profit-negative';
-      const profitSign = record.net_profit >= 0 ? '+' : '';
-      
-      div.innerHTML = `
-        <div class="flex justify-between items-start mb-6">
-          <div>
-            <h3 class="text-xl md:text-2xl font-bold mb-1">🎫 ${formattedDate}</h3>
-            <p class="text-sm opacity-70">บันทึกเมื่อ: ${new Date(record.created_at).toLocaleDateString('th-TH')}</p>
-          </div>
-          <button class="delete-btn px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105" data-record-id="${record.id}">
-            🗑️ ลบ
-          </button>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <!-- Summary Section -->
-          <div class="space-y-3">
-            <h4 class="font-semibold text-blue-600 border-b pb-2">📊 สรุปงวดนี้</h4>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="opacity-70">ต้นทุนสลากฯ:</span>
-                <span class="font-medium text-red-600">฿${record.lottery_cost.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="opacity-70">ยอดขายรวม:</span>
-                <span class="font-medium text-green-600">฿${record.total_sales.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
-              </div>
-              <div class="flex justify-between font-semibold border-t pt-2 text-lg">
-                <span>กำไร/ขาดทุน:</span>
-                <span class="${profitClass}">${profitSign}฿${Math.abs(record.net_profit).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Performance Indicator -->
-          <div class="space-y-3">
-            <h4 class="font-semibold text-purple-600 border-b pb-2">📈 ผลประกอบการ</h4>
-            <div class="text-center p-4 rounded-lg ${record.net_profit >= 0 ? 'bg-green-50' : 'bg-red-50'}">
-              <div class="text-3xl mb-2">${record.net_profit >= 0 ? '📈' : '📉'}</div>
-              <p class="text-sm opacity-70 mb-1">${record.net_profit >= 0 ? 'กำไรในงวดนี้' : 'ขาดทุนในงวดนี้'}</p>
-              <p class="text-2xl font-bold ${profitClass}">${profitSign}฿${Math.abs(record.net_profit).toLocaleString('th-TH', {minimumFractionDigits: 2})}</p>
-              <p class="text-xs opacity-60 mt-2">อัตรากำไร: ${record.lottery_cost > 0 ? ((record.net_profit / record.lottery_cost) * 100).toFixed(1) : '0'}%</p>
-            </div>
-          </div>
-        </div>
-        
-        ${record.notes ? `<div class="mt-4 pt-4 border-t"><p class="text-sm opacity-80">📝 ${record.notes}</p></div>` : ''}
-      `;
-      
-      const deleteBtn = div.querySelector('.delete-btn');
-      deleteBtn.style.backgroundColor = config.secondary_action_color;
-      deleteBtn.style.color = '#ffffff';
-      
-      deleteBtn.addEventListener('click', () => handleDelete(record));
-      
-      return div;
-    }
+            return (
+                <div className="flex h-full bg-gray-50">
+                    {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+                    
+                    {/* Sidebar */}
+                    <aside className="w-72 bg-white border-r border-gray-100 flex flex-col z-20 shadow-xl shadow-gray-200/50">
+                        <div className="p-8 pb-6">
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                                    <Icon name="cloud" size={20} />
+                                </div>
+                                <div><h1 className="font-heading font-bold text-xl text-gray-900 leading-none">Lottery Pro</h1><span className="text-xs font-medium text-gray-400">Cloud System</span></div>
+                            </div>
+                            
+                            <div className="mb-6">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block px-1">งวดบัญชี</label>
+                                <div className="relative group">
+                                    <select value={currentPeriodId} onChange={(e) => setCurrentPeriodId(e.target.value)} className="w-full appearance-none bg-gray-50 hover:bg-gray-100 border-none rounded-xl px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer outline-none transition-colors">
+                                        {periods.map(p => <option key={p.id} value={p.id}>{new Date(p.date).toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}</option>)}
+                                    </select>
+                                    <Icon name="chevron-down" size={16} className="absolute right-4 top-3.5 text-gray-400 pointer-events-none" />
+                                </div>
+                                <button onClick={handleAddPeriod} className="mt-3 w-full border border-dashed border-gray-300 rounded-xl py-2.5 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
+                                    <Icon name="plus-circle" size={16} /> เริ่มงวดใหม่
+                                </button>
+                            </div>
+                        </div>
 
-    // แก้ไข handleDelete เพื่อเรียกใช้ google.script.run
-    async function handleDelete(record) {
-      const deleteBtn = document.querySelector(`.delete-btn[data-record-id="${record.id}"]`);
-      if (!deleteBtn) return;
-      
-      const originalText = '🗑️ ลบ';
-      
-      if (deleteBtn.textContent === originalText) {
-        deleteBtn.textContent = '❓ ยืนยันลบ?';
-        deleteBtn.style.backgroundColor = '#f59e0b'; // สีเหลือง
-        
-        // ตั้งเวลาคืนค่าปุ่ม
-        deleteBtn.dataset.timer = setTimeout(() => {
-          if (deleteBtn.textContent === '❓ ยืนยันลบ?') {
-            deleteBtn.textContent = originalText;
-            deleteBtn.style.backgroundColor = defaultConfig.secondary_action_color;
-          }
-        }, 3000);
-        return;
-      }
+                        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
+                            <div className="px-4 pb-2 pt-4 text-xs font-bold text-gray-400 uppercase tracking-wider">เมนูหลัก</div>
+                            {[
+                                { id: 'dashboard', label: 'ภาพรวม', icon: 'layout-dashboard' },
+                                { id: 'inventory', label: 'จัดการต้นทุน', icon: 'package' },
+                                { id: 'sales', label: 'บันทึกยอดขาย', icon: 'shopping-bag' },
+                                { id: 'reports', label: 'รายงานสรุป', icon: 'file-text' },
+                                { id: 'data', label: 'จัดการข้อมูล', icon: 'database' }
+                            ].map(menu => (
+                                <button key={menu.id} onClick={() => setActiveTab(menu.id)} 
+                                    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 group ${activeTab === menu.id ? 'bg-indigo-50 text-indigo-700 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}>
+                                    <Icon name={menu.icon} size={20} className={activeTab === menu.id ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'} />
+                                    {menu.label}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="p-6 text-center text-xs text-gray-400">
+                             {isSyncing ? <span className="flex items-center justify-center gap-2 text-indigo-500"><Icon name="refresh-cw" size={12} className="animate-spin" /> บันทึกอัตโนมัติ...</span> : "ซิงค์ข้อมูลล่าสุดแล้ว"}
+                        </div>
+                    </aside>
 
-      // ตรวจสอบ Google Script API ก่อนลบ
-      if (typeof google === 'undefined' || !google.script || !google.script.run) {
-        showMessage("⚠️ ไม่สามารถลบได้ แอปนี้ต้องรันจาก Google Apps Script URL", "error");
-        // คืนค่าปุ่ม
-        deleteBtn.textContent = originalText;
-        deleteBtn.style.backgroundColor = defaultConfig.secondary_action_color;
-        clearTimeout(deleteBtn.dataset.timer); // ล้าง timer
-        return;
-      }
-      
-      // ถ้าคลิกยืนยัน
-      clearTimeout(deleteBtn.dataset.timer); // ล้าง timer
-      deleteBtn.textContent = '⏳ กำลังลบ...';
-      deleteBtn.disabled = true;
-      deleteBtn.style.opacity = '0.5';
-      
-      // เรียกใช้ Google Apps Script
-      google.script.run
-        .withSuccessHandler(onRecordDeleted)
-        .withFailureHandler(onDeleteError)
-        .deleteRecord(record.id);
-    }
+                    {/* Content */}
+                    <main className="flex-1 overflow-hidden relative flex flex-col bg-white/50">
+                        <div className="h-full overflow-y-auto overflow-x-hidden custom-scroll">
+                            {activeTab === 'dashboard' && <DashboardView />}
+                            {activeTab === 'inventory' && <InventoryView />}
+                            {activeTab === 'sales' && <SalesView />}
+                            {activeTab === 'reports' && <ReportsView />}
+                            {activeTab === 'data' && <DataManagementView />}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
 
-    /**
-     * @description Callback เมื่อลบข้อมูลสำเร็จ
-     */
-    function onRecordDeleted(deletedRecordId) {
-      // ไม่ต้องทำอะไรกับปุ่ม เพราะแถวจะถูกลบไป
-      showMessage("✅ ลบข้อมูลงวดเรียบร้อยแล้ว", "success");
-      
-      // อัปเดต UI ทันที
-      records = records.filter(r => r.id !== deletedRecordId);
-      renderRecords();
-      updateSummaryDashboard();
-    }
-
-    /**
-     * @description Callback เมื่อลบข้อมูลไม่สำเร็จ
-     */
-    function onDeleteError(error) {
-      showMessage("❌ เกิดข้อผิดพลาดในการลบ: " + error.message, "error");
-      
-      // คืนค่าปุ่ม
-      const deleteBtn = document.querySelector(`.delete-btn[disabled]`);
-      if (deleteBtn) {
-        deleteBtn.textContent = '🗑️ ลบ';
-        deleteBtn.disabled = false;
-        deleteBtn.style.opacity = '1';
-        deleteBtn.style.backgroundColor = defaultConfig.secondary_action_color;
-      }
-    }
-
-    function populateLotteryPeriods() {
-      const select = document.getElementById('drawPeriod');
-      const periods = generateLotteryPeriods();
-      
-      periods.forEach(period => {
-        const option = document.createElement('option');
-        option.value = period.date;
-        option.textContent = period.label;
-        select.appendChild(option);
-      });
-    }
-
-    function generateLotteryPeriods() {
-      const periods = [];
-      const today = new Date();
-      const currentYear = today.getFullYear();
-      
-      // สร้างงวดย้อนหลัง 1 ปี และล่วงหน้า 1 ปี
-      for (let year = currentYear - 1; year <= currentYear + 1; year++) {
-        for (let month = 1; month <= 12; month++) {
-          let firstDrawDay;
-          if (month === 1) { // มกราคม
-            firstDrawDay = 17;
-          } else if (month === 5) { // พฤษภาคม (ถ้าปี 67+)
-              // หมายเหตุ: อาจต้องปรับแก้ตามจริง
-              firstDrawDay = 2; 
-          } else {
-            firstDrawDay = 1;
-          }
-          
-          const firstDraw = new Date(year, month - 1, firstDrawDay);
-          periods.push({
-            date: formatDateForInput(firstDraw),
-            label: `งวด ${firstDraw.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
-          });
-          
-          const secondDraw = new Date(year, month - 1, 16);
-          periods.push({
-            date: formatDateForInput(secondDraw),
-            label: `งวด ${secondDraw.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
-          });
-        }
-        
-        // งวดพิเศษสิ้นปี
-        const dec30 = new Date(year, 11, 30); // 30 ธันวาคม
-        periods.push({
-          date: formatDateForInput(dec30),
-          label: `งวด ${dec30.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
-        });
-      }
-      
-      // ลบงวดที่ซ้ำกัน (เช่น 1 ม.ค. กับ 30 ธ.ค. อาจชนกัน)
-      const uniquePeriods = Array.from(new Map(periods.map(p => [p.date, p])).values());
-
-      // เรียงตามวันที่ (ใหม่สุดไปเก่าสุด)
-      uniquePeriods.sort((a, b) => new Date(b.date) - new Date(a.date));
-      
-      return uniquePeriods;
-    }
-
-    function formatDateForInput(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    // เริ่มการทำงานของแอป
-    initializeApp();
-  </script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
-
